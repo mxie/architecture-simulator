@@ -1,8 +1,6 @@
 #!/usr/bin/python
 import sys, binascii
 from instr_models import RInstruction, IInstruction, JInstruction
-op->instr
-op->instr type
 
 instr_dict = {0b101011:('sw',IInstruction),
               0b100011:('lw',IInstruction),
