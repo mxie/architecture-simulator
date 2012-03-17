@@ -10,6 +10,8 @@ instr_dict = {0b101011:('sw',IInstruction),
               0b000010:('j',JInstruction),
               0b111111:('hlt')}
 
+output = ''
+
 class BinaryParser(object):
     num_bytes = 16
 
@@ -17,6 +19,7 @@ class BinaryParser(object):
         self.f = f
 
     def parse(self):
+        global output
         instr_list = []
         with open(self.f,'rb') as contents:
             words = contents.read(self.num_bytes)
@@ -25,18 +28,20 @@ class BinaryParser(object):
             while words:
                 hexwords = binascii.hexlify(words)
                 if hexwords != '0' * (self.num_bytes * 2):
-                    print self.prettify(hexwords,addr_counter)
+                    output += self.prettify(hexwords,addr_counter)
+                    output += '\n'
                     starred = False
                     instr_list += self.split_instrs(addr_counter,words)
                 else:
                     if not starred:
-                        print self.prettify(hexwords,addr_counter)
-                        print '*'
+                        output += self.prettify(hexwords,addr_counter)
+                        output += '\n'
+                        output += '*\n'
                         starred = True
                 words = contents.read(self.num_bytes)
                 addr_counter += self.num_bytes
 
-            print '%08x' % addr_counter
+            output += '%08x' % addr_counter
 
     def prettify(self,s,c):
         byte_addr = '%08x' % c 
@@ -44,16 +49,29 @@ class BinaryParser(object):
         return byte_addr + '  ' +  ' '.join(result)
     
     def create_instr(self,addr,instr):
-        pass
+        global instr_dict
+        # how to work at the bit level?!
+
+    def get_bit(slf,byteval,idx):
+        return (byteval&(1<<idx))
 
     def split_instrs(self,addr,words):
         i_list = []
         for i in range(0,len(words),8):
             i_list.append(self.create_instr(addr,words[i:i+8]))
-
         return i_list
 
 if __name__ == "__main__":
-    filename = sys.argv[1]
-    parser = BinaryParser(filename)
-    parser.parse()
+    if len(sys.argv) != 3:
+        print 'Usage: %s binfile hexdumpfile' % sys.argv[0]
+    else:
+        filename = sys.argv[1]
+        parser = BinaryParser(filename)
+        parser.parse()
+        out_file = open(sys.argv[2], "w")
+        out_file.seek(0)
+        for line in output:
+            out_file.write(line)
+        out_file.close()
+        print '%s successful' % sys.argv[2]
+        print output
