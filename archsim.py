@@ -50,15 +50,21 @@ class BinaryParser(object):
     
     def create_instr(self,addr,instr):
         global instr_dict
-        # how to work at the bit level?!
+        bin_instr = bin(int(instr.encode("hex"),16))[2:]
+        print self.make_32bit(bin_instr)
 
-    def get_bit(slf,byteval,idx):
-        return (byteval&(1<<idx))
+    def make_32bit(self, bin):
+        if len(bin) < 32:
+            pad_num = 32 - len(bin)
+            padding = '0' * pad_num
+            bin = padding + bin
+        return bin[:14]+' '+bin[14:19]+' '+bin[19:24]+' '+bin[24:30]+' '+bin[30:]
 
     def split_instrs(self,addr,words):
         i_list = []
-        for i in range(0,len(words),8):
-            i_list.append(self.create_instr(addr,words[i:i+8]))
+        # separating the 16 bytes into 4 instructions
+        for i in range(0,len(words),4):
+            i_list.append(self.create_instr(addr,words[i:i+4]))
         return i_list
 
 if __name__ == "__main__":
