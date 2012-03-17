@@ -44,7 +44,7 @@ class BinaryParser(object):
         return byte_addr + '  ' +  ' '.join(result)
     
     def create_instr(self,addr,instr):
-        
+        pass
 
     def split_instrs(self,addr,words):
         i_list = []
