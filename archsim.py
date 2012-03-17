@@ -19,7 +19,7 @@ class BinaryParser(object):
     def parse(self):
         instr_list = []
         with open(self.f,'rb') as contents:
-            word = contents.read(self.num_bytes)
+            words = contents.read(self.num_bytes)
             starred = False
             addr_counter = 0
             while words:
@@ -27,7 +27,7 @@ class BinaryParser(object):
                 if hexwords != '0' * (self.num_bytes * 2):
                     print self.prettify(hexwords,addr_counter)
                     starred = False
-                    instr_list += split_instrs(words)
+                    instr_list += self.split_instrs(addr_counter,words)
                 else:
                     if not starred:
                         print self.prettify(hexwords,addr_counter)
@@ -49,7 +49,7 @@ class BinaryParser(object):
     def split_instrs(self,addr,words):
         i_list = []
         for i in range(0,len(words),8):
-            i_list.append(create_instr(addr,words[i:i+8]))
+            i_list.append(self.create_instr(addr,words[i:i+8]))
 
         return i_list
 
