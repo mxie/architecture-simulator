@@ -1,16 +1,17 @@
 #!/usr/bin/python
-import sys, binascii
+import sys, binascii, struct
 from instr_models import RInstruction, IInstruction, JInstruction
 
-instr_dict = {0b101011:('sw',IInstruction),
-              0b100011:('lw',IInstruction),
-              0b000000:('add',RInstruction),
-              0b001000:('addi',IInstruction),
-              0b000100:('beq',IInstruction),
-              0b000010:('j',JInstruction),
-              0b111111:('hlt')}
+instr_dict = {'101011':('sw',IInstruction),
+              '100011':('lw',IInstruction),
+              '000000':('add',RInstruction),
+              '001000':('addi',IInstruction),
+              '000100':('beq',IInstruction),
+              '000010':('j',JInstruction),
+              '111111':('hlt')}
 
 output = ''
+instr_list = []
 
 class BinaryParser(object):
     num_bytes = 16
@@ -19,8 +20,7 @@ class BinaryParser(object):
         self.f = f
 
     def parse(self):
-        global output
-        instr_list = []
+        global output, instr_list
         with open(self.f,'rb') as contents:
             words = contents.read(self.num_bytes)
             starred = False
@@ -50,15 +50,29 @@ class BinaryParser(object):
     
     def create_instr(self,addr,instr):
         global instr_dict
-        bin_instr = bin(int(instr.encode("hex"),16))[2:]
-        print self.make_32bit(bin_instr)
+        unpacked = struct.unpack('<I',instr)[0]
+        binary = bin(unpacked)[2:]
+        binary_instr = self.make_32bit(binary)
+        opcode = binary_instr[:6]
+        remaining = binary_instr[6:]
+
+        if instr_dict[opcode]:
+            instr_type = instr_dict[opcode][1]
+            if instr_type == RInstruction:
+                return RInstruction(addr,opcode,remaining)
+            elif instr_type == IInstruction:
+                return IInstruction(addr,opcode,remaining)
+            elif instr_type == JInstruction:
+                return JInstruction(addr,opcode,remaining) 
+        else:
+            print 'this ain\'t a valid instruction bro'
 
     def make_32bit(self, bin):
         if len(bin) < 32:
             pad_num = 32 - len(bin)
             padding = '0' * pad_num
             bin = padding + bin
-        return bin[:14]+' '+bin[14:19]+' '+bin[19:24]+' '+bin[24:30]+' '+bin[30:]
+        return bin
 
     def split_instrs(self,addr,words):
         i_list = []
@@ -74,6 +88,9 @@ if __name__ == "__main__":
         filename = sys.argv[1]
         parser = BinaryParser(filename)
         parser.parse()
+        for instr in instr_list:
+            print instr.to_str
+
         out_file = open(sys.argv[2], "w")
         out_file.seek(0)
         for line in output:
