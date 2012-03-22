@@ -1,3 +1,6 @@
+Melissa Xie, Courtney Sims
+EECE 3230 Final Project
+
 Usage: ./archsim.py [binary file] [hexdump file]
 Do `cat [hexdump file]` to see hexdump output
 

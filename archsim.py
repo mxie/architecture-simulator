@@ -1,6 +1,10 @@
 #!/usr/bin/python
+
+# Melissa Xie, Courtney Sims
+# EECE 3230 Final Project
+
 import sys, binascii, struct
-from instr_models import RInstruction, IInstruction, JInstruction
+from instr_models import RInstruction, IInstruction, JInstruction, HLTInstruction
 
 # maps available opcodes to their instruction and instruction types
 instr_dict = {
@@ -10,18 +14,22 @@ instr_dict = {
               '100011':('lw',IInstruction),
               '101011':('sw',IInstruction),
               '000010':('j',JInstruction),
-              '111111':('hlt',None)}
+              '111111':('hlt',HLTInstruction)}
 
 output = ''
 instr_list = []
 
 class BinaryParser(object):
+    """Used to parse binary files into MIPS instructions."""
     num_bytes = 16
 
     def __init__(self,f):
+        """Initialize this BinaryParser."""
         self.f = f
 
     def parse(self):
+        """Reads instructions from a binary file, puts them into data structures, 
+        and generates the output which is written to the hexdump file."""
         global output, instr_list
 
         with open(self.f,'rb') as contents:
@@ -50,11 +58,22 @@ class BinaryParser(object):
             output += '%08x' % addr_counter
 
     def prettify(self,s,c):
+        """Given hexwords and the address counter, returns a more readable 
+        representation which can be printed to the hexdump."""
         byte_addr = '%08x' % c
         result = [s[i:i+2] for i in range(0,len(s),2)]
         return byte_addr + '  ' +  ' '.join(result)
 
+    def split_instrs(self,addr,words):
+        """Splits the given words into 4 instructions."""
+        i_list = []
+        # separating the 16 bytes into 4 instructions
+        for i in range(0,len(words),4):
+            i_list.append(self.create_instr(addr,words[i:i+4]))
+        return i_list
+
     def create_instr(self,addr,instr):
+        """Creates an Instruction of the appropriate type based on the given instr."""
         global instr_dict
 
         # read in the string/data in little endian, unsigned format
@@ -73,22 +92,19 @@ class BinaryParser(object):
                 return IInstruction(addr,opcode,remaining)
             elif instr_type == JInstruction:
                 return JInstruction(addr,opcode,remaining)
+            elif instr_type == HLTInstruction:
+                return HLTInstruction(addr,opcode,remaining)
         else:
             print 'Opcode %s is not a valid instruction' % opcode
 
     def make_32bit(self, bin):
+        """If an instruction is less than 32 bits, pads the front with zeros."""
         if len(bin) < 32:
             pad_num = 32 - len(bin)
             padding = '0' * pad_num
             bin = padding + bin
         return bin
 
-    def split_instrs(self,addr,words):
-        i_list = []
-        # separating the 16 bytes into 4 instructions
-        for i in range(0,len(words),4):
-            i_list.append(self.create_instr(addr,words[i:i+4]))
-        return i_list
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
@@ -106,3 +122,5 @@ if __name__ == "__main__":
         out_file.close()
         print '%s has been written' % sys.argv[2]
 #        print output
+#        for x in instr_list:
+#            print x.to_str()
