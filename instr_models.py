@@ -3,6 +3,8 @@
 # Melissa Xie, Courtney Sims
 # EECE 3230 Final Project
 
+from parser import instr_dict
+
 class Instruction(object):
     """Represents a MIPS instruction."""
 
@@ -11,8 +13,9 @@ class Instruction(object):
         self.addr = addr
         self.opcode = opcode
         self.rem = rem
+        self.instr = instr_dict[opcode][0]
 
-    def to_str(self):
+    def __str__(self):
         """Returns a string representation of this Instruction."""
         return 'addr: %s , opcode: %s'% (self.addr,self.opcode)
 
@@ -23,14 +26,24 @@ class RInstruction(Instruction):
 
     def __init__(self,addr,opcode,rem):
         """Initializes this RInstruction."""
+        super(RInstruction,self).__init__(addr,opcode,rem)
         self.rs = rem[:5] 
         self.rt = rem[5:10]
         self.rd = rem[10:15]
         self.shamt = rem[15:20]
         self.funct = rem[20:]
-        super(RInstruction,self).__init__(addr,opcode,rem)
+        self.c_signals = { 'RegDst': 1,
+                           'ALUSrc': 0,
+                           'MemtoReg': 0,
+                           'RegWrite': 1,
+                           'MemRead': 0,
+                           'MemWrite': 0,
+                           'Branch': 0,
+                           'ALUOp1': 1,
+                           'ALUOp0': 0,
+                           'Jump': 0 }
 
-    def to_str(self):
+    def __str__(self):
         """Returns a string representation of this RInstruction."""
         return 'addr: %s , opcode: %s , rs: %s , rt: %s , rd: %s , shamt: %s , funct: %s' % (self.addr, self.opcode, self.rs, self.rt, self.rd, self.shamt, self.funct)
         
@@ -41,16 +54,42 @@ class IInstruction(Instruction):
 
     def __init__(self,addr,opcode,rem):
         """Initializes this IInstruction."""
+        super(IInstruction,self).__init__(addr,opcode,rem)
         self.rs = rem[:5] 
         self.rt = rem[5:10]
         self.rd = rem[10:15]
         self.imm = rem[15:]
-        super(IInstruction,self).__init__(addr,opcode,rem)
+        self.c_signals = set_control_signals(self.instr)
 
-    def to_str(self):
+    def __str__(self):
         """Returns a string representation of this IInstruction."""
         return 'addr: %s , opcode: %s , rs: %s , rt: %s , imm: %s' % (self.addr, self.opcode, self.rs, self.rt, self.imm)
 
+    def set_control_signals(instr):
+        signals = { 'RegDst': 0,
+                    'ALUSrc': 0,
+                    'MemtoReg': 0,
+                    'RegWrite': 0,
+                    'MemRead': 0,
+                    'MemWrite': 0,
+                    'Branch': 0,
+                    'ALUOp1': 0,
+                    'ALUOp0': 0
+                    'Jump:': 0 }
+
+        if instr == 'lw':
+            for s in ['ALUSrc','MemtoReg','RegWrite','MemRead']:
+                signals[s] = 1
+        elif instr == 'sw':
+            for s in ['MemtoReg','MemWrite']:
+                signals[s] = 1
+            for s in ['RegDst','MemtoReg']:
+                signals[s] = None
+        elif instr == 'beq':
+            for s in ['Branch','ALUOp0']:
+                signals[s] = 1
+            for s in ['RegDst','MemtoReg']:
+                signals[s] = None
 
 
 class JInstruction(Instruction):
@@ -58,10 +97,20 @@ class JInstruction(Instruction):
 
     def __init__(self,addr,opcode,rem):
         """Initializes this JInstruction."""
-        self.target = rem 
         super(JInstruction,self).__init__(addr,opcode,rem)
+        self.target = rem 
+        self.c_signals = { 'RegDst': 0,
+                           'ALUSrc': 0,
+                           'MemtoReg': 0,
+                           'RegWrite': 0,
+                           'MemRead': 0,
+                           'MemWrite': 0,
+                           'Branch': 0,
+                           'ALUOp1': 0,
+                           'ALUOp0': 0,
+                           'Jump': 1 }
 
-    def to_str(self):
+    def __str__(self):
         """Returns a string representation of this JInstruction."""
         return 'addr: %s , opcode: %s , target: %s' % (self.addr, self.opcode, self.target)
         
@@ -74,6 +123,6 @@ class HLTInstruction(Instruction):
         """Initializes this HLT."""
         super(HLTInstruction,self).__init__(addr,opcode,rem)
 
-    def to_str(self):
+    def __str__(self):
         """Returns a string representation of this HLTInstruction."""
         return 'addr: %s , opcode: %s , rem: %s' % (self.addr, self.opcode, self.rem)
