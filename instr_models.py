@@ -3,10 +3,19 @@
 # Melissa Xie, Courtney Sims
 # EECE 3230 Final Project
 
-from parser import instr_dict
+# maps available opcodes to their instruction
+instr_dict = {'000000':'add',
+              '001000':'addi',
+              '000100':'beq',
+              '100011':'lw',
+              '101011':'sw',
+              '000010':'j',
+              '111111':'hlt'}
+
 
 class Instruction(object):
     """Represents a MIPS instruction."""
+    global instr_dict
 
     def __init__(self,addr,opcode,rem):
         """Initializes this Instruction."""
@@ -59,13 +68,13 @@ class IInstruction(Instruction):
         self.rt = rem[5:10]
         self.rd = rem[10:15]
         self.imm = rem[15:]
-        self.c_signals = set_control_signals(self.instr)
+        self.c_signals = self.set_control_signals(self.instr)
 
     def __str__(self):
         """Returns a string representation of this IInstruction."""
         return 'addr: %s , opcode: %s , rs: %s , rt: %s , imm: %s' % (self.addr, self.opcode, self.rs, self.rt, self.imm)
 
-    def set_control_signals(instr):
+    def set_control_signals(self,instr):
         signals = { 'RegDst': 0,
                     'ALUSrc': 0,
                     'MemtoReg': 0,
