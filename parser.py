@@ -3,8 +3,7 @@ import binascii, struct
 from instr_models import RInstruction, IInstruction, JInstruction, HLTInstruction
 
 # maps available opcodes to their instruction and instruction types
-instr_dict = {
-              '000000':('add',RInstruction),
+instr_dict = {'000000':('add',RInstruction),
               '001000':('addi',IInstruction),
               '000100':('beq',IInstruction),
               '100011':('lw',IInstruction),
@@ -62,8 +61,10 @@ class BinaryParser(object):
         """Splits the given words into 4 instructions."""
         i_list = []
         # separating the 16 bytes into 4 instructions
+        offset = 0
         for i in range(0,len(words),4):
-            i_list.append(self.create_instr(addr,words[i:i+4]))
+            i_list.append(self.create_instr(addr+offset,words[i:i+4]))
+            offset += 4
         return i_list
 
     def create_instr(self,addr,instr):

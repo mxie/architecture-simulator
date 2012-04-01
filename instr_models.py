@@ -74,8 +74,8 @@ class IInstruction(Instruction):
                     'MemWrite': 0,
                     'Branch': 0,
                     'ALUOp1': 0,
-                    'ALUOp0': 0
-                    'Jump:': 0 }
+                    'ALUOp0': 0,
+                    'Jump': 0 }
 
         if instr == 'lw':
             for s in ['ALUSrc','MemtoReg','RegWrite','MemRead']:
@@ -85,11 +85,16 @@ class IInstruction(Instruction):
                 signals[s] = 1
             for s in ['RegDst','MemtoReg']:
                 signals[s] = None
+        elif instr == 'addi':
+            for s in ['ALUSrc','RegWrite']:
+                signals[s] = 1
         elif instr == 'beq':
             for s in ['Branch','ALUOp0']:
                 signals[s] = 1
             for s in ['RegDst','MemtoReg']:
                 signals[s] = None
+
+        return signals
 
 
 class JInstruction(Instruction):
