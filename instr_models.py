@@ -30,6 +30,12 @@ class Instruction(object):
 
 
 
+class Nop(Instruction):
+    pass
+
+Nop = Nop()
+
+
 class RInstruction(Instruction):
     """Represents an R-type MIPS instruction."""
 
