@@ -30,7 +30,7 @@ class Instruction(object):
 
 
 
-class Nop(Instruction):
+class Nop:
     pass
 
 Nop = Nop()
