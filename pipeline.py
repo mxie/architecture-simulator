@@ -61,6 +61,7 @@ class DXReg(PipelineReg):
         super(DXReg,self).__init__(instr)
         self.register_rs = None
         self.register_rt = None
+        self.register_rd = None
         self.mem_read = None
 
 class XMReg(PipelineReg):
