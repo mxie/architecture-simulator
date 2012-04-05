@@ -6,6 +6,7 @@
 import sys
 from instr_models import RInstruction, IInstruction, JInstruction, HLTInstruction
 from parser import BinaryParser
+from pipeline import PipelineSim
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
@@ -16,12 +17,15 @@ if __name__ == "__main__":
         parser = BinaryParser(filename)
         parser.parse()
 
+        p_sim = PipelineSim(parser.instr_list)
+        print str(p_sim)
+
         # write out hexdump to file
-        out_file = open(sys.argv[2], "w")
-        for line in parser.output:
-            out_file.write(line)
-        out_file.close()
-        print '%s has been written' % sys.argv[2]
+#        out_file = open(sys.argv[2], "w")
+#        for line in parser.output:
+#            out_file.write(line)
+#        out_file.close()
+#        print '%s has been written' % sys.argv[2]
 #        print output
 #        for x in parser.instr_list:
 #            print x.to_str()

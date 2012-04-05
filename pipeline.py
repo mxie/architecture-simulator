@@ -9,16 +9,33 @@ class PipelineSim(object):
         self.memory = dict((i*4,0) for i in range(0x00000ffc/4))
         self.pc = 0x00001000
         self.instructions = instrs
-        self.pipeline = [ FetchStage(),
-                          DecodeStage(),
-                          ExecuteStage(),
-                          MemoryStage(),
-                          WriteStage() ]
+#        self.pipeline = [ FetchStage(),
+#                          DecodeStage(),
+#                          ExecuteStage(),
+#                          MemoryStage(),
+#                          WriteStage() ]
 
         # to populate memory with the data we're starting with
         for i in instrs:
             self.memory[i.addr] = i
 
+    def __str__(self):
+        result = 'REGISTER CONTENT\n'
+        for i in range(0,len(self.registers),2):
+            reg0 = self.registers[i]
+            reg1 = self.registers[i+1]
+            result += 'R%s: %s R%s: %s\n' % (i, reg0, i+1, reg1)
+        result += 'MEMORY CONTENT\n'
+        i = 1
+        for addr in self.memory.keys():
+            if (i == 1):
+                result += '0x%08x ...\n' % (addr)
+            elif (i == 4):
+                result += '\n'
+                i = 1
+            else:
+                i += 1
+        return result
 
 class PipelineStage(object):
     def __init__(self,instr,sim):
@@ -47,7 +64,8 @@ class WriteStage(PipelineStage):
 
 
 class PipelineReg(object):
-    def __init__(self):
+    def __init__(self,instr):
+        self.instr = instr
 
 class FDReg(PipelineReg):
     def __init__(self):
