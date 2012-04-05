@@ -6,7 +6,7 @@ class PipelineSim(object):
         self.cycle_count = 0
         self.cpi = 0
         self.registers = [0 for i in range(32)]
-        self.memory = dict((i*4,0) for i in range(0x00000ffc/4))
+        self.memory = dict((i,0) for i in range(0,0x00000ffc,4))
         self.pc = 0x00001000
         self.instructions = instrs
 #        self.pipeline = [ FetchStage(),
@@ -24,16 +24,18 @@ class PipelineSim(object):
         for i in range(0,len(self.registers),2):
             reg0 = self.registers[i]
             reg1 = self.registers[i+1]
-            result += 'R%s: %s R%s: %s\n' % (i, reg0, i+1, reg1)
+            result += 'R%s: 0x%08x R%s: 0x%08x\n' % (i, reg0, i+1, reg1)
         result += 'MEMORY CONTENT\n'
         i = 1
-        for addr in self.memory.keys():
+        for addr in sorted(self.memory.keys()):
             if (i == 1):
-                result += '0x%08x ...\n' % (addr)
+                result += '0x%08x ' % (addr)
+                i += 1
             elif (i == 4):
                 result += '\n'
                 i = 1
             else:
+                result += 'stuff '
                 i += 1
         return result
 
