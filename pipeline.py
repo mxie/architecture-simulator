@@ -25,17 +25,20 @@ class PipelineSim(object):
             reg0 = self.registers[i]
             reg1 = self.registers[i+1]
             result += 'R%s: 0x%08x R%s: 0x%08x\n' % (i, reg0, i+1, reg1)
+
         result += 'MEMORY CONTENT\n'
         i = 1
-        for addr in sorted(self.memory.keys()):
+        mem_addresses = sorted(self.memory.keys())
+        for addr in mem_addresses[:32]:
+            h = '%08x' % mem_addresses[addr]
             if (i == 1):
-                result += '0x%08x ' % (addr)
+                result += '0x%08x %s %s %s %s ' % (addr,h[:2],h[2:4],h[4:6],h[6:])
                 i += 1
             elif (i == 4):
-                result += '\n'
+                result += '%s %s %s %s\n' % (h[:2],h[2:4],h[4:6],h[6:])
                 i = 1
             else:
-                result += 'stuff '
+                result += '%s %s %s %s ' % (h[:2],h[2:4],h[4:6],h[6:])
                 i += 1
         return result
 
