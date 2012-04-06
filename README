@@ -5,3 +5,6 @@ Usage: ./archsim.py [binary file] [hexdump file]
 Do `cat [hexdump file]` to see hexdump output
 
 This program is a MIPS simulator that currently just takes in a binary file containing MIPS instructions and writes the hexdump representation of the input file out to the given hexdump file name.
+
+== Changelog ==
+04.05.2012 - The program now prints the register and memory content to standard output in addition to the hexdump file.
