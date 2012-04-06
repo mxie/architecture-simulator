@@ -1,12 +1,12 @@
 #!/usr/bin/python
 
 class PipelineSim(object):
-    def __init__(self, instrs):
+    def __init__(self, memory, instrs):
         self.instr_count = 0
         self.cycle_count = 0
         self.cpi = 0
         self.registers = [0 for i in range(32)]
-        self.memory = dict((i,0) for i in range(0,0x00000ffc,4))
+        self.memory = memory 
         self.pc = 0x00001000
         self.instructions = instrs
 #        self.pipeline = [ FetchStage(),
@@ -15,9 +15,6 @@ class PipelineSim(object):
 #                          MemoryStage(),
 #                          WriteStage() ]
 
-        # to populate memory with the data we're starting with
-        for i in instrs:
-            self.memory[i.addr] = i
 
     def __str__(self):
         result = 'REGISTER CONTENT\n'
@@ -30,7 +27,8 @@ class PipelineSim(object):
         i = 1
         mem_addresses = sorted(self.memory.keys())
         for addr in mem_addresses[:32]:
-            h = '%08x' % mem_addresses[addr]
+            data = self.memory[addr]
+            h = '%s' % data if data != 0 else '%08x' % data
             if (i == 1):
                 result += '0x%08x %s %s %s %s ' % (addr,h[:2],h[2:4],h[4:6],h[6:])
                 i += 1

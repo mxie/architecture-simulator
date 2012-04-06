@@ -20,6 +20,7 @@ class BinaryParser(object):
         self.f = f
         self.output = ''
         self.instr_list = []
+        self.memory = dict((i,0) for i in range(0,0x00000ffc,4))
 
     def parse(self):
         """Reads instructions from a binary file, puts them into data structures, 
@@ -58,12 +59,15 @@ class BinaryParser(object):
         return byte_addr + '  ' +  ' '.join(result)
 
     def split_instrs(self,addr,words):
-        """Splits the given words into 4 instructions."""
+        """Splits the given words into 4 instructions and loads data directly into memory."""
         i_list = []
         # separating the 16 bytes into 4 instructions
         offset = 0
         for i in range(0,len(words),4):
-            i_list.append(self.create_instr(addr+offset,words[i:i+4]))
+            actual_addr = addr+offset
+            data = words[i:i+4]
+            i_list.append(self.create_instr(actual_addr,data))
+            self.memory[actual_addr] = binascii.hexlify(data)
             offset += 4
         return i_list
 
@@ -71,13 +75,9 @@ class BinaryParser(object):
         """Creates an Instruction of the appropriate type based on the given instr."""
         global instr_dict
 
-        # read in the string/data in little endian, unsigned format
-        unpacked = struct.unpack('<I',instr)[0]
-        # get binary representation
-        binary = bin(unpacked)[2:]
-        binary_instr = self.make_32bit(binary)
-        opcode = binary_instr[:6]
-        remaining = binary_instr[6:]
+        binary = self.hex_to_bin(instr)
+        opcode = binary[:6]
+        remaining = binary[6:]
 
         if instr_dict[opcode]:
             instr_type = instr_dict[opcode][1]
@@ -92,6 +92,18 @@ class BinaryParser(object):
         else:
             print 'Opcode %s is not a valid instruction' % opcode
 
+    def hex_to_bin(self,s):
+        # read in the string/data in little endian, unsigned format
+        unpacked = struct.unpack('<I',s)[0]
+        # get binary representation
+        binary_str = bin(unpacked)[2:]
+
+        return self.make_32bit(binary_str)
+
+#def bin_to_hex(s):
+#        int_str = int(s,2)
+
+    
     def make_32bit(self, bin):
         """If an instruction is less than 32 bits, pads the front with zeros."""
         if len(bin) < 32:

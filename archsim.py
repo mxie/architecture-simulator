@@ -14,10 +14,10 @@ if __name__ == "__main__":
     else:
         # parse the binary file
         filename = sys.argv[1]
-        parser = BinaryParser(filename)
-        parser.parse()
+        p = BinaryParser(filename)
+        p.parse()
 
-        p_sim = PipelineSim(parser.instr_list)
+        p_sim = PipelineSim(p.memory,p.instr_list)
         print str(p_sim)
 
         # write out hexdump to file
