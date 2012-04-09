@@ -21,11 +21,11 @@ if __name__ == "__main__":
         print str(p_sim)
 
         # write out hexdump to file
-#        out_file = open(sys.argv[2], "w")
-#        for line in parser.output:
-#            out_file.write(line)
-#        out_file.close()
-#        print '%s has been written' % sys.argv[2]
+        out_file = open(sys.argv[2], "w")
+        for line in p.output:
+            out_file.write(line)
+        out_file.close()
+        print '%s has been written' % sys.argv[2]
 #        print output
-#        for x in parser.instr_list:
+#        for x in p.instr_list:
 #            print x.to_str()

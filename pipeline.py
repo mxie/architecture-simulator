@@ -9,11 +9,11 @@ class PipelineSim(object):
         self.memory = memory 
         self.pc = 0x00001000
         self.instructions = instrs
-#        self.pipeline = [ FetchStage(),
-#                          DecodeStage(),
-#                          ExecuteStage(),
-#                          MemoryStage(),
-#                          WriteStage() ]
+        self.pipeline = [ FetchStage(),
+                          DecodeStage(),
+                          ExecuteStage(),
+                          MemoryStage(),
+                          WriteStage() ]
 
 
     def __str__(self):
