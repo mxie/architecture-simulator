@@ -9,8 +9,8 @@ from parser import BinaryParser
 from pipeline import PipelineSim
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        print 'Usage: ./%s binfile hexdumpfile' % sys.argv[0]
+    if len(sys.argv) != 2:
+        print 'Usage: ./%s binfile' % sys.argv[0]
     else:
         # parse the binary file
         filename = sys.argv[1]
@@ -18,14 +18,5 @@ if __name__ == "__main__":
         p.parse()
 
         p_sim = PipelineSim(p.memory,p.instr_list)
+        p_sim.advance() 
         print str(p_sim)
-
-        # write out hexdump to file
-        out_file = open(sys.argv[2], "w")
-        for line in p.output:
-            out_file.write(line)
-        out_file.close()
-        print '%s has been written' % sys.argv[2]
-#        print output
-#        for x in p.instr_list:
-#            print x.to_str()

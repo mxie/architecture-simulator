@@ -1,4 +1,6 @@
 #!/usr/bin/python
+from collections import deque
+from instr_models import HLTInstruction
 
 class PipelineSim(object):
     def __init__(self, memory, instrs):
@@ -8,13 +10,8 @@ class PipelineSim(object):
         self.registers = [0 for i in range(32)]
         self.memory = memory 
         self.pc = 0x00001000
-        self.instructions = instrs
-        self.pipeline = [ FetchStage(),
-                          DecodeStage(),
-                          ExecuteStage(),
-                          MemoryStage(),
-                          WriteStage() ]
-
+        self.instructions = deque(instrs)
+        self.pipeline = deque([])
 
     def __str__(self):
         result = 'REGISTER CONTENT\n'
@@ -40,6 +37,18 @@ class PipelineSim(object):
                 i += 1
         return result
 
+    def advance(self):
+        while True:
+            i = self.instructions.popleft()
+            if type(i) is HLTInstruction:
+                while self.pipeline:
+                    self.pipeline.pop()
+                return
+            else:
+                if (len(self.pipeline) == 5):
+                    self.pipeline.pop()
+                self.pipeline.appendleft(i)
+        
 class PipelineStage(object):
     def __init__(self,instr,sim):
         self.instr = instr

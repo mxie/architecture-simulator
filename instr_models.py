@@ -98,16 +98,12 @@ class IInstruction(Instruction):
         elif instr == 'sw':
             for s in ['MemtoReg','MemWrite']:
                 signals[s] = 1
-            for s in ['RegDst','MemtoReg']:
-                signals[s] = None
         elif instr == 'addi':
             for s in ['ALUSrc','RegWrite']:
                 signals[s] = 1
         elif instr == 'beq':
             for s in ['Branch','ALUOp0']:
                 signals[s] = 1
-            for s in ['RegDst','MemtoReg']:
-                signals[s] = None
 
         return signals
 
