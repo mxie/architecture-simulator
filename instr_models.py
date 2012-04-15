@@ -13,10 +13,8 @@ instr_dict = {'000000':'add',
               '111111':'hlt'}
 
 
-class Nop:
+class Nop(object):
     pass
-
-Nop = Nop()
 
 
 class Instruction(object):

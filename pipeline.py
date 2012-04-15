@@ -6,7 +6,6 @@ class PipelineSim(object):
     def __init__(self, memory, instrs):
         self.instr_count = 0
         self.cycle_count = 0
-        self.cpi = 0
         self.registers = [0 for i in range(32)]
         self.memory = memory 
         self.pc = 0x00001000
@@ -20,7 +19,7 @@ class PipelineSim(object):
             reg1 = self.registers[i+1]
             result += 'R%s: 0x%08x R%s: 0x%08x\n' % (i, reg0, i+1, reg1)
 
-        result += 'MEMORY CONTENT\n'
+        result += '\nMEMORY CONTENT\n'
         i = 1
         mem_addresses = sorted(self.memory.keys())
         for addr in mem_addresses[:32]:
@@ -40,44 +39,61 @@ class PipelineSim(object):
     def advance(self):
         empty_pipe = deque([Nop for i in range(5)])
         while True:
-            i = self.instructions.popleft()
-            if type(i) is HLTInstruction:
-                while self.pipeline is not empty_pipe:
-                    self.pipeline.pop()
-                    self.pipeline.appendleft(Nop)
-                return
-            else:
-                self.do_stages()
+            # I forget when she wanted us to print 'snapshots' of our stuff,
+            # was it after
+            if self.cycle_count == 1 or self.cycle_count == 9:
+                print "*** Cycle # %s content ***\n" % self.cycle_count
+                print self
+            try:
+                self.do_stages(self.instructions.popleft())
+            except IndexError:
+                self.do_stages(Nop)
+            if type(self.pipeline[0]) is HLTInstruction:
+                break
+
+        # flushes the pipeline after we see an HLT
+        while self.pipeline != empty_pipe:
+            self.do_stages(Nop)
+
         
-    def do_stages():
+    # takes instr as an argument so we can fetch Nops
+    def do_stages(self, instr):
         self.write(self.pipeline[4])
         self.access_mem(self.pipeline[3])
         self.execute(self.pipeline[2])
         self.decode(self.pipeline[1])
-        self.fetch(self.pipeline[0])
+        self.fetch(instr)
+        self.cycle_count += 1
 
     def fetch(self, instr):
         if (len(self.pipeline) >= 5):
             self.pipeline.pop()
         self.pipeline.appendleft(instr)
+        if instr is not Nop:
+            self.instr_count += 1
 
     def decode(self, instr):
         pass
 
     def execute(self, instr):
-        if type(instr) == Nop:
+        if instr is Nop:
             pass
         else:
+            pass
             # a bunch of stuff here
 
     def access_mem(self, instr):
-        if type(instr) == Nop:
+        if instr is Nop:
+            pass
+        elif instr.opcode == '100011' or instr.opcode == '101011':
+            # DO STUFF HERE if lw or sw!
             pass
         else:
-            # a bunch of stuff here
+            pass
 
     def write(self, instr):
-        if type(instr) == Nop:
+        if instr is Nop:
             pass
         else:
+            pass
             # a bunch of stuff here
