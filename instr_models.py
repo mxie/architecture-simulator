@@ -80,6 +80,7 @@ class IInstruction(Instruction):
         """Returns a string representation of this IInstruction."""
         return 'addr: %s , opcode: %s , rs: %s , rt: %s , imm: %s' % (self.addr, self.opcode, self.rs, self.rt, self.imm)
 
+
     def set_control_signals(self,instr):
         signals = { 'RegDst': 0,
                     'ALUSrc': 0,

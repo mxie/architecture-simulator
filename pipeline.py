@@ -73,6 +73,9 @@ class PipelineSim(object):
             self.instr_count += 1
 
     def decode(self, instr):
+        # add stuff to represent stuff as ints and not binary for when we
+        # throw stuff into the registers
+        # (to make it easier to add, addi, etc with ints instead of binary stuff)
         pass
 
     def execute(self, instr):
@@ -85,15 +88,17 @@ class PipelineSim(object):
     def access_mem(self, instr):
         if instr is Nop:
             pass
-        elif instr.opcode == '100011' or instr.opcode == '101011':
+        elif instr.instr == 'lw' or instr.instr == 'sw':
             # DO STUFF HERE if lw or sw!
-            pass
+            print "hi"
         else:
             pass
 
     def write(self, instr):
-        if instr is Nop:
+        if instr is Nop or type(instr) is JInstruction:
             pass
         else:
-            pass
-            # a bunch of stuff here
+            if instr.result is not None:
+                self.registers[int(instr.rd)] = instr.result
+            else:
+                pass
