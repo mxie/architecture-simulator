@@ -13,6 +13,12 @@ instr_dict = {'000000':'add',
               '111111':'hlt'}
 
 
+class Nop:
+    pass
+
+Nop = Nop()
+
+
 class Instruction(object):
     """Represents a MIPS instruction."""
     global instr_dict
@@ -22,18 +28,14 @@ class Instruction(object):
         self.addr = addr
         self.opcode = opcode
         self.rem = rem
-        self.instr = instr_dict[opcode][0]
+        self.instr = instr_dict[opcode]
+        self.result = None
+        self.unwritten = []
 
     def __str__(self):
         """Returns a string representation of this Instruction."""
         return 'addr: %s , opcode: %s'% (self.addr,self.opcode)
 
-
-
-class Nop:
-    pass
-
-Nop = Nop()
 
 
 class RInstruction(Instruction):

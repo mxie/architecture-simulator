@@ -1,6 +1,6 @@
 #!/usr/bin/python
 from collections import deque
-from instr_models import HLTInstruction
+from instr_models import HLTInstruction, RInstruction, IInstruction, JInstruction, Nop
 
 class PipelineSim(object):
     def __init__(self, memory, instrs):
@@ -11,7 +11,7 @@ class PipelineSim(object):
         self.memory = memory 
         self.pc = 0x00001000
         self.instructions = deque(instrs)
-        self.pipeline = deque([])
+        self.pipeline = deque([Nop for i in range(5)])
 
     def __str__(self):
         result = 'REGISTER CONTENT\n'
@@ -38,71 +38,46 @@ class PipelineSim(object):
         return result
 
     def advance(self):
+        empty_pipe = deque([Nop for i in range(5)])
         while True:
             i = self.instructions.popleft()
             if type(i) is HLTInstruction:
-                while self.pipeline:
+                while self.pipeline is not empty_pipe:
                     self.pipeline.pop()
+                    self.pipeline.appendleft(Nop)
                 return
             else:
-                if (len(self.pipeline) == 5):
-                    self.pipeline.pop()
-                self.pipeline.appendleft(i)
+                self.do_stages()
         
-class PipelineStage(object):
-    def __init__(self,instr,sim):
-        self.instr = instr
-        self.sim = sim
+    def do_stages():
+        self.write(self.pipeline[4])
+        self.access_mem(self.pipeline[3])
+        self.execute(self.pipeline[2])
+        self.decode(self.pipeline[1])
+        self.fetch(self.pipeline[0])
 
-class FetchStage(PipelineStage):
-    def __init__(self):
-        super(FetchStage,self).__init__(instr,sim)
+    def fetch(self, instr):
+        if (len(self.pipeline) >= 5):
+            self.pipeline.pop()
+        self.pipeline.appendleft(instr)
 
-class DecodeStage(PipelineStage):
-    def __init__(self):
-        super(DecodeStage,self).__init__(instr,sim)
+    def decode(self, instr):
+        pass
 
-class ExecuteStage(PipelineStage):
-    def __init__(self):
-        super(ExecuteStage,self).__init__(instr,sim)
+    def execute(self, instr):
+        if type(instr) == Nop:
+            pass
+        else:
+            # a bunch of stuff here
 
-class MemoryStage(PipelineStage):
-    def __init__(self):
-        super(MemoryStage,self).__init__(instr,sim)
+    def access_mem(self, instr):
+        if type(instr) == Nop:
+            pass
+        else:
+            # a bunch of stuff here
 
-class WriteStage(PipelineStage):
-    def __init__(self):
-        super(WriteStage,self).__init__(instr,sim)
-
-
-class PipelineReg(object):
-    def __init__(self,instr):
-        self.instr = instr
-
-class FDReg(PipelineReg):
-    def __init__(self):
-        super(FDReg,self).__init__(instr)
-        self.register_rs = None
-        self.register_rt = None
-        self.register_rd = None
-
-class DXReg(PipelineReg):
-    def __init__(self):
-        super(DXReg,self).__init__(instr)
-        self.register_rs = None
-        self.register_rt = None
-        self.register_rd = None
-        self.mem_read = None
-
-class XMReg(PipelineReg):
-    def __init__(self):
-        super(XMReg,self).__init__(instr)
-        self.reg_write = None
-        self.register_rd = None
-
-class MWReg(PipelineReg):
-    def __init__(self):
-        super(MWReg,self).__init__(instr)
-        self.reg_write = None
-        self.register_rd = None
-
+    def write(self, instr):
+        if type(instr) == Nop:
+            pass
+        else:
+            # a bunch of stuff here
