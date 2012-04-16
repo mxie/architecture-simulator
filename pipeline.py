@@ -49,8 +49,7 @@ class PipelineSim(object):
                 self.do_stages(self.instructions.popleft())
             except IndexError:
                 self.do_stages(Nop)
-            if self.pipeline[0] is HLTInstruction:
-                self.pipeline[0] = Nop
+            if type(self.pipeline[0]) is HLTInstruction:
                 break
 
         # flushes the pipeline after we see an HLT
@@ -88,7 +87,7 @@ class PipelineSim(object):
     def execute(self, instr):
         # TODO: hazard detection and forwarding
         # TODO: write more logic to update instr.unwritten with registers
-        if instr is not Nop:
+        if instr is not Nop and type(instr) is not HLTInstruction:
             i = instr.instr
             c_sigs = instr.c_signals
             if c_sigs['RegWrite']:
@@ -109,8 +108,8 @@ class PipelineSim(object):
                 self.pc = instr.target
             else:
                 val1 = self.registers[instr.rs]
-                val2 = self.registers[instr.rt] if c_sigs['ALUSrc'] else instr.imm
-                instr.result = eval('%s+%s' % src1,src2)
+                val2 = self.registers[instr.rt] if not c_sigs['ALUSrc'] else instr.imm
+                instr.result = eval('%s+%s' % (val1,val2))
 
     def access_mem(self, instr):
         # sw : M[R[rs]+SignExtImm] = R[rt]
@@ -135,7 +134,7 @@ class PipelineSim(object):
             pass 
 
     def write(self, instr):
-        if instr is None or instr is Nop or instr is HLTInstruction:
+        if instr is Nop or type(instr) is HLTInstruction:
             pass
         elif instr.c_signals['RegWrite']:
             if instr.result is not None:
