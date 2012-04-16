@@ -75,27 +75,31 @@ class PipelineSim(object):
         self.pc += 4
 
     def decode(self, instr):
-        if instr.instr == 'j':
+        if instr is Nop:
+            pass
+        elif instr.instr == 'j':
             self.pc = instr.target
             # stall!
             self.pipeline[0] = Nop
+        else:
+            pass
 
     def execute(self, instr):
         # TODO: hazard detection and forwarding
         # TODO: write more logic to update instr.unwritten with registers
-        i = instr.instr
-        c_sigs = instr.c_signals
-        if instr is not Nop:
+        if instr is not Nop and type(instr) is not HLTInstruction:
+            i = instr.instr
+            c_sigs = instr.c_signals
             if c_sigs['RegWrite']:
                 dest = instr.rd if c_sigs['RegDst'] else instr.rt
                 instr.unwritten.append(dest)
 
-            if i == 'beq'
+            if i == 'beq':
                 val1 = self.registers[instr.rs]
                 val2 = self.registers[instr.rt]
                 if val1 == val2:
                     # not sure if this is the complete math, might involve subtraction
-                    self.pc += (bin_to_int(instr.imm) * 4)
+                    self.pc += (instr.imm * 4)
                     # stall!
                     self.pipeline[0] = Nop
                     self.pipeline[1] = Nop
@@ -104,23 +108,44 @@ class PipelineSim(object):
                 self.pc = instr.target
             else:
                 val1 = self.registers[instr.rs]
-                val2 = self.registers[instr.rt] if c_sigs['ALCSrc'] else instr.imm
+                val2 = self.registers[instr.rt] if c_sigs['ALUSrc'] else instr.imm
                 instr.result = eval('%s+%s' % src1,src2)
 
     def access_mem(self, instr):
+        # sw : M[R[rs]+SignExtImm] = R[rt]
+        # lw : R[rt] = M[R[rs]+SignExtImm] 
         if instr is Nop:
             pass
-        elif instr.instr == 'lw' or instr.instr == 'sw':
-            # DO STUFF HERE if lw or sw!
-            print "hi"
-        else:
+        elif instr.instr == 'sw':
+            #print 'SW : M[' + str(instr.rs) + ' + ' + str(instr.imm) + '] = R[' + str(instr.rt) + ']'
+            self.memory[self.registers[instr.rs] + instr.imm] = self.registers[instr.rt]
+
+        elif instr.instr == 'lw':
+            #print 'LW : R[' + str(instr.rt) + '] = M[' + str(instr.rs) + ' + ' + str(instr.imm) + ']'
+            
+            #somewhere self.registers[instr.rs] is ending up as a string type w/ val '01000000' 
+            #or something, but where/when/how/why?!?!?!?
+
+            #memloc = self.registers[instr.rs] + instr.imm
+            #self.registers[instr.rt] = self.memory[memloc]
             pass
 
-    def write(self, instr):
-        if instr is Nop or type(instr) is JInstruction:
-            pass
         else:
-            if instr.result is not None:
-                self.registers[int(instr.rd)] = instr.result
-            else:
-                pass
+            pass 
+
+    def write(self, instr):
+        if instr is None or instr is Nop or type(instr) is HLTInstruction:
+            pass
+        elif instr.c_signals['RegWrite']:
+            pass
+        elif type(instr) is RInstruction and instr.result is not None:
+            self.registers[instr.rd] = instr.result
+            if self.registers[instr.rd] in instr.unwritten:
+                instr.unwritten.remove(instr.rd)
+
+        elif type(instr) is IInstruction and instr.result is not None:
+            self.registers[instr.rt] = instr.result
+            if self.registers[instr.rt] in instr.unwritten:
+                instr.unwritten.remove(instr.rt)
+        else:
+            pass
