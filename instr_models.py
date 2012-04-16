@@ -12,6 +12,9 @@ instr_dict = {'000000':'add',
               '000010':'j',
               '111111':'hlt'}
 
+def bin_to_int(s):
+    """Converts a binary string into an integer representation"""
+    return int('0b'+s, 2)
 
 class Nop(object):
     pass
@@ -42,11 +45,11 @@ class RInstruction(Instruction):
     def __init__(self,addr,opcode,rem):
         """Initializes this RInstruction."""
         super(RInstruction,self).__init__(addr,opcode,rem)
-        self.rs = rem[:5] 
-        self.rt = rem[5:10]
-        self.rd = rem[10:15]
-        self.shamt = rem[15:20]
-        self.funct = rem[20:]
+        self.rs = bin_to_int(rem[:5])
+        self.rt = bin_to_int(rem[5:10])
+        self.rd = bin_to_int(rem[10:15])
+        self.shamt = bin_to_int(rem[15:20])
+        self.funct = bin_to_int(rem[20:])
         self.c_signals = { 'RegDst': 1,
                            'ALUSrc': 0,
                            'MemtoReg': 0,
@@ -61,7 +64,7 @@ class RInstruction(Instruction):
     def __str__(self):
         """Returns a string representation of this RInstruction."""
         return 'addr: %s , opcode: %s , rs: %s , rt: %s , rd: %s , shamt: %s , funct: %s' % (self.addr, self.opcode, self.rs, self.rt, self.rd, self.shamt, self.funct)
-        
+
 
 
 class IInstruction(Instruction):
@@ -70,10 +73,10 @@ class IInstruction(Instruction):
     def __init__(self,addr,opcode,rem):
         """Initializes this IInstruction."""
         super(IInstruction,self).__init__(addr,opcode,rem)
-        self.rs = rem[:5] 
-        self.rt = rem[5:10]
-        self.rd = rem[10:15]
-        self.imm = rem[15:]
+        self.rs = bin_to_int(rem[:5])
+        self.rt = bin_to_int(rem[5:10])
+        self.rd = bin_to_int(rem[10:15])
+        self.imm = bin_to_int(rem[15:]) # do we need to worry about sign extension?
         self.c_signals = self.set_control_signals(self.instr)
 
     def __str__(self):
@@ -115,7 +118,7 @@ class JInstruction(Instruction):
     def __init__(self,addr,opcode,rem):
         """Initializes this JInstruction."""
         super(JInstruction,self).__init__(addr,opcode,rem)
-        self.target = rem 
+        self.target = bin_to_int(rem)*4
         self.c_signals = { 'RegDst': 0,
                            'ALUSrc': 0,
                            'MemtoReg': 0,
@@ -130,7 +133,7 @@ class JInstruction(Instruction):
     def __str__(self):
         """Returns a string representation of this JInstruction."""
         return 'addr: %s , opcode: %s , target: %s' % (self.addr, self.opcode, self.target)
-        
+
 
 
 class HLTInstruction(Instruction):

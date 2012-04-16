@@ -7,7 +7,7 @@ class PipelineSim(object):
         self.instr_count = 0
         self.cycle_count = 0
         self.registers = [0 for i in range(32)]
-        self.memory = memory 
+        self.memory = memory
         self.pc = 0x00001000
         self.instructions = deque(instrs)
         self.pipeline = deque([Nop for i in range(5)])
@@ -37,6 +37,7 @@ class PipelineSim(object):
         return result
 
     def advance(self):
+        """ Moves the clock forward a signal tick """
         empty_pipe = deque([Nop for i in range(5)])
         while True:
             # I forget when she wanted us to print 'snapshots' of our stuff,
@@ -55,7 +56,7 @@ class PipelineSim(object):
         while self.pipeline != empty_pipe:
             self.do_stages(Nop)
 
-        
+
     # takes instr as an argument so we can fetch Nops
     def do_stages(self, instr):
         self.write(self.pipeline[4])
@@ -71,19 +72,40 @@ class PipelineSim(object):
         self.pipeline.appendleft(instr)
         if instr is not Nop:
             self.instr_count += 1
+        self.pc += 4
 
     def decode(self, instr):
-        # add stuff to represent stuff as ints and not binary for when we
-        # throw stuff into the registers
-        # (to make it easier to add, addi, etc with ints instead of binary stuff)
-        pass
+        if instr.instr == 'j':
+            self.pc = instr.target
+            # stall!
+            self.pipeline[0] = Nop
 
     def execute(self, instr):
-        if instr is Nop:
-            pass
-        else:
-            pass
-            # a bunch of stuff here
+        # TODO: hazard detection and forwarding
+        # TODO: write more logic to update instr.unwritten with registers
+        i = instr.instr
+        c_sigs = instr.c_signals
+        if instr is not Nop:
+            if c_sigs['RegWrite']:
+                dest = instr.rd if c_sigs['RegDst'] else instr.rt
+                instr.unwritten.append(dest)
+
+            if i == 'beq'
+                val1 = self.registers[instr.rs]
+                val2 = self.registers[instr.rt]
+                if val1 == val2:
+                    # not sure if this is the complete math, might involve subtraction
+                    self.pc += (bin_to_int(instr.imm) * 4)
+                    # stall!
+                    self.pipeline[0] = Nop
+                    self.pipeline[1] = Nop
+            elif i == 'j':
+                # might involve more things?
+                self.pc = instr.target
+            else:
+                val1 = self.registers[instr.rs]
+                val2 = self.registers[instr.rt] if c_sigs['ALCSrc'] else instr.imm
+                instr.result = eval('%s+%s' % src1,src2)
 
     def access_mem(self, instr):
         if instr is Nop:

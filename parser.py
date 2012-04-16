@@ -93,16 +93,13 @@ class BinaryParser(object):
             print 'Opcode %s is not a valid instruction' % opcode
 
     def hex_to_bin(self,s):
+        """Converts a hex data into a 32-bit binary string"""
         # read in the string/data in little endian, unsigned format
         unpacked = struct.unpack('<I',s)[0]
         # get binary representation
         binary_str = bin(unpacked)[2:]
 
         return self.make_32bit(binary_str)
-
-#def bin_to_hex(s):
-#        int_str = int(s,2)
-
     
     def make_32bit(self, bin):
         """If an instruction is less than 32 bits, pads the front with zeros."""
