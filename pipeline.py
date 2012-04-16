@@ -49,7 +49,8 @@ class PipelineSim(object):
                 self.do_stages(self.instructions.popleft())
             except IndexError:
                 self.do_stages(Nop)
-            if type(self.pipeline[0]) is HLTInstruction:
+            if self.pipeline[0] is HLTInstruction:
+                self.pipeline[0] = Nop
                 break
 
         # flushes the pipeline after we see an HLT
@@ -87,7 +88,7 @@ class PipelineSim(object):
     def execute(self, instr):
         # TODO: hazard detection and forwarding
         # TODO: write more logic to update instr.unwritten with registers
-        if instr is not Nop and type(instr) is not HLTInstruction:
+        if instr is not Nop:
             i = instr.instr
             c_sigs = instr.c_signals
             if c_sigs['RegWrite']:
@@ -134,18 +135,13 @@ class PipelineSim(object):
             pass 
 
     def write(self, instr):
-        if instr is None or instr is Nop or type(instr) is HLTInstruction:
+        if instr is None or instr is Nop or instr is HLTInstruction:
             pass
         elif instr.c_signals['RegWrite']:
-            pass
-        elif type(instr) is RInstruction and instr.result is not None:
-            self.registers[instr.rd] = instr.result
-            if self.registers[instr.rd] in instr.unwritten:
-                instr.unwritten.remove(instr.rd)
-
-        elif type(instr) is IInstruction and instr.result is not None:
-            self.registers[instr.rt] = instr.result
-            if self.registers[instr.rt] in instr.unwritten:
-                instr.unwritten.remove(instr.rt)
+            if instr.result is not None:
+                dest = instr.rd if instr.c_signals['RegDst'] else instr.rt
+                self.registers[dest] = instr.result
+                if dest in instr.unwritten:
+                    instr.unwritten.remove(dest)
         else:
             pass
