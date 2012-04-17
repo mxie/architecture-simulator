@@ -14,7 +14,7 @@ instr_dict = {'000000':'add',
 
 def bin_to_int(s):
     """Converts a binary string into an integer representation"""
-    return int('0b'+s, 2)
+    return int(s, 2)
 
 class Nop(object):
     pass
@@ -63,7 +63,7 @@ class RInstruction(Instruction):
 
     def __str__(self):
         """Returns a string representation of this RInstruction."""
-        return 'addr: %s , opcode: %s , rs: %s , rt: %s , rd: %s , shamt: %s , funct: %s' % (self.addr, self.opcode, self.rs, self.rt, self.rd, self.shamt, self.funct)
+        return '%s %s, %s, %s' % (self.instr, self.rd, self.rs, self.rt)
 
 
 
@@ -75,13 +75,12 @@ class IInstruction(Instruction):
         super(IInstruction,self).__init__(addr,opcode,rem)
         self.rs = bin_to_int(rem[:5])
         self.rt = bin_to_int(rem[5:10])
-        self.rd = bin_to_int(rem[10:15])
-        self.imm = bin_to_int(rem[15:]) # do we need to worry about sign extension?
+        self.imm = bin_to_int(rem[10:]) # do we need to worry about sign extension?
         self.c_signals = self.set_control_signals(self.instr)
 
     def __str__(self):
         """Returns a string representation of this IInstruction."""
-        return 'addr: %s , opcode: %s , rs: %s , rt: %s , imm: %s' % (self.addr, self.opcode, self.rs, self.rt, self.imm)
+        return '%s %s, %s, %s' % (self.instr, self.rt, self.rs, self.imm)
 
 
     def set_control_signals(self,instr):
@@ -132,7 +131,7 @@ class JInstruction(Instruction):
 
     def __str__(self):
         """Returns a string representation of this JInstruction."""
-        return 'addr: %s , opcode: %s , target: %s' % (self.addr, self.opcode, self.target)
+        return '%s %s' % (self.instr, self.target)
 
 
 

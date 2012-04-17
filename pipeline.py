@@ -1,6 +1,7 @@
 #!/usr/bin/python
 from collections import deque
 from instr_models import HLTInstruction, RInstruction, IInstruction, JInstruction, Nop
+import struct
 
 class PipelineSim(object):
     def __init__(self, memory, instrs):
@@ -24,11 +25,11 @@ class PipelineSim(object):
         mem_addresses = sorted(self.memory.keys())
         for addr in mem_addresses[:32]:
             data = self.memory[addr]
-            h = '%s' % data if data != 0 else '%08x' % data
-            if (i == 1):
+            h = '0'*8 if not data else str(data)
+            if i == 1:
                 result += '0x%08x %s %s %s %s ' % (addr,h[:2],h[2:4],h[4:6],h[6:])
                 i += 1
-            elif (i == 4):
+            elif i == 4:
                 result += '%s %s %s %s\n' % (h[:2],h[2:4],h[4:6],h[6:])
                 i = 1
             else:
@@ -72,6 +73,7 @@ class PipelineSim(object):
         self.pipeline.appendleft(instr)
         if instr is not Nop:
             self.instr_count += 1
+            print 'Adding %s to the pipeline...' % instr
         self.pc += 4
 
     def decode(self, instr):
@@ -117,19 +119,13 @@ class PipelineSim(object):
         if instr is Nop:
             pass
         elif instr.instr == 'sw':
-            #print 'SW : M[' + str(instr.rs) + ' + ' + str(instr.imm) + '] = R[' + str(instr.rt) + ']'
-            self.memory[self.registers[instr.rs] + instr.imm] = self.registers[instr.rt]
-
+            self.memory[instr.result] = self.registers[instr.rt]
         elif instr.instr == 'lw':
-            #print 'LW : R[' + str(instr.rt) + '] = M[' + str(instr.rs) + ' + ' + str(instr.imm) + ']'
-            
-            #somewhere self.registers[instr.rs] is ending up as a string type w/ val '01000000' 
-            #or something, but where/when/how/why?!?!?!?
-
-            #memloc = self.registers[instr.rs] + instr.imm
-            #self.registers[instr.rt] = self.memory[memloc]
-            pass
-
+            hex_content = self.memory[instr.result]
+            # kind of hacky...should probably use struct.unpack for this
+            # basically, we need to turn our data from hex string to int
+            mem_content = int(hex_content[::-1],16) if isinstance(hex_content,str) else hex_content
+            instr.result = mem_content
         else:
             pass 
 

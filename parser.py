@@ -14,13 +14,14 @@ instr_dict = {'000000':('add',RInstruction),
 class BinaryParser(object):
     """Used to parse binary files into MIPS instructions."""
     num_bytes = 16
+    max_data_addr = 0x00000ffc
 
     def __init__(self,f):
         """Initialize this BinaryParser."""
         self.f = f
         self.output = ''
         self.instr_list = []
-        self.memory = dict((i,0) for i in range(0,0x00000ffc,4))
+        self.memory = dict([ (i,0) for i in range(0,self.max_data_addr,4) ])
 
     def parse(self):
         """Reads instructions from a binary file, puts them into data structures, 
@@ -66,7 +67,8 @@ class BinaryParser(object):
         for i in range(0,len(words),4):
             actual_addr = addr+offset
             data = words[i:i+4]
-            i_list.append(self.create_instr(actual_addr,data))
+            if actual_addr > self.max_data_addr:
+                i_list.append(self.create_instr(actual_addr,data))
             self.memory[actual_addr] = binascii.hexlify(data)
             offset += 4
         return i_list
