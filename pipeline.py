@@ -10,7 +10,7 @@ class PipelineSim(object):
         self.registers = [0 for i in range(32)]
         self.memory = memory
         self.pc = 0x00001000
-        self.instructions = deque(instrs)
+        self.instructions = instrs
         self.pipeline = deque([Nop for i in range(5)])
 
     def __str__(self):
@@ -20,34 +20,39 @@ class PipelineSim(object):
             reg1 = self.registers[i+1]
             result += 'R%s: 0x%08x R%s: 0x%08x\n' % (i, reg0, i+1, reg1)
 
-        result += '\nMEMORY CONTENT\n'
-        i = 1
-        mem_addresses = sorted(self.memory.keys())
-        for addr in mem_addresses[:32]:
-            packed = struct.pack('@I',self.memory[addr])
-            h = binascii.hexlify(packed)
-            if i == 1:
-                result += '0x%08x %s %s %s %s ' % (addr,h[:2],h[2:4],h[4:6],h[6:])
-                i += 1
-            elif i == 4:
-                result += '%s %s %s %s\n' % (h[:2],h[2:4],h[4:6],h[6:])
-                i = 1
-            else:
-                result += '%s %s %s %s ' % (h[:2],h[2:4],h[4:6],h[6:])
-                i += 1
+#        result += '\nMEMORY CONTENT\n'
+#        i = 1
+#        mem_addresses = sorted(self.memory.keys())
+#        for addr in mem_addresses[:32]:
+#            packed = struct.pack('@I',self.memory[addr])
+#            h = binascii.hexlify(packed)
+#            if i == 1:
+#                result += '0x%08x %s %s %s %s ' % (addr,h[:2],h[2:4],h[4:6],h[6:])
+#                i += 1
+#            elif i == 4:
+#                result += '%s %s %s %s\n' % (h[:2],h[2:4],h[4:6],h[6:])
+#                i = 1
+#            else:
+#                result += '%s %s %s %s ' % (h[:2],h[2:4],h[4:6],h[6:])
+#                i += 1
         return result
 
+    def find_instr(self,addr):
+        """ Returns the instruction at the given address """
+        f = lambda i: i.addr == addr
+        match = filter(f,self.instructions)
+        return match[0]
+
     def advance(self):
-        """ Moves the clock forward a signal tick """
+        """ Moves the clock a single tick """
         empty_pipe = deque([Nop for i in range(5)])
         while True:
-            # I forget when she wanted us to print 'snapshots' of our stuff,
-            # was it after
-            if self.cycle_count == 1 or self.cycle_count == 9:
-                print "*** Cycle # %s content ***\n" % self.cycle_count
-                print self
+#            if self.cycle_count == 1 or self.cycle_count == 9:
+#                print "*** Cycle # %s content ***\n" % self.cycle_count
+#                print self
             try:
-                self.do_stages(self.instructions.popleft())
+                instr = self.find_instr(self.pc)
+                self.do_stages(instr)
             except IndexError:
                 self.do_stages(Nop)
             if type(self.pipeline[0]) is HLTInstruction:
@@ -65,10 +70,11 @@ class PipelineSim(object):
         self.execute(self.pipeline[2])
         self.decode(self.pipeline[1])
         self.fetch(instr)
+        print '\n'
         self.cycle_count += 1
 
     def fetch(self, instr):
-        print 'Adding %s to the pipeline...\n' % instr
+        print 'Adding %s to the pipeline...' % instr
         if (len(self.pipeline) >= 5):
             self.pipeline.pop()
         self.pipeline.appendleft(instr)
@@ -78,14 +84,7 @@ class PipelineSim(object):
 
     def decode(self, instr):
         print 'Decoding %s...' % instr
-        if instr is Nop:
-            pass
-        elif instr.instr == 'j':
-            self.pc = instr.target
-            # stall!
-            self.pipeline[0] = Nop
-        else:
-            pass
+        pass
 
     def execute(self, instr):
         print 'Executing %s...' % instr
@@ -94,25 +93,27 @@ class PipelineSim(object):
         if instr is not Nop and type(instr) is not HLTInstruction:
             i = instr.instr
             c_sigs = instr.c_signals
-            if i != 'j':
-                if c_sigs['RegWrite']:
-                    dest = instr.rd if c_sigs['RegDst'] else instr.rt
-                    instr.unwritten.append(dest)
+            if c_sigs['RegWrite']:
+                dest = instr.rd if c_sigs['RegDst'] else instr.rt
+                instr.unwritten.append(dest)
 
-                if i == 'beq':
-                    val1 = self.registers[instr.rs]
-                    val2 = self.registers[instr.rt]
-                    if val1 == val2:
-                        # not sure if this is the complete math, might involve subtraction
-                        self.pc += (instr.imm * 4)
-                        # stall!
-                        self.pipeline[0] = Nop
-                        self.pipeline[1] = Nop
-                else:
-                    val1 = self.registers[instr.rs]
-                    val2 = self.registers[instr.rt] if not c_sigs['ALUSrc'] else instr.imm
-                    instr.result = eval('%s+%s' % (val1,val2))
-                    print '\tinstr: %s -- %s,%s' % (instr,val1,val2)
+            if i == 'beq':
+                val1 = self.registers[instr.rs]
+                val2 = self.registers[instr.rt]
+                if val1 == val2:
+                    # not sure if this is the complete math, might involve subtraction
+                    self.pc += 4 + (4*instr.imm)
+                    self.pipeline[1] = Nop
+                    self.pipeline[0] = Nop
+            elif i == 'j':
+                self.pc = instr.target
+                self.pipeline[1] = Nop
+                self.pipeline[0] = Nop
+            else:
+                val1 = self.registers[instr.rs]
+                val2 = self.registers[instr.rt] if not c_sigs['ALUSrc'] else instr.imm
+                instr.result = eval('%s+%s' % (val1,val2))
+                print '\tinstr: %s -- %s,%s' % (instr,val1,val2)
 
     def access_mem(self, instr):
         print 'Access memory with %s (if needed)...' % instr
