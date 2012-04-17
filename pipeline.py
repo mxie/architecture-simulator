@@ -1,7 +1,7 @@
 #!/usr/bin/python
 from collections import deque
 from instr_models import HLTInstruction, RInstruction, IInstruction, JInstruction, Nop
-import struct
+import struct, binascii
 
 class PipelineSim(object):
     def __init__(self, memory, instrs):
@@ -24,8 +24,8 @@ class PipelineSim(object):
         i = 1
         mem_addresses = sorted(self.memory.keys())
         for addr in mem_addresses[:32]:
-            data = self.memory[addr]
-            h = '0'*8 if not data else str(data)
+            packed = struct.pack('@I',self.memory[addr])
+            h = binascii.hexlify(packed)
             if i == 1:
                 result += '0x%08x %s %s %s %s ' % (addr,h[:2],h[2:4],h[4:6],h[6:])
                 i += 1
@@ -68,15 +68,16 @@ class PipelineSim(object):
         self.cycle_count += 1
 
     def fetch(self, instr):
+        print 'Adding %s to the pipeline...\n' % instr
         if (len(self.pipeline) >= 5):
             self.pipeline.pop()
         self.pipeline.appendleft(instr)
         if instr is not Nop:
             self.instr_count += 1
-            print 'Adding %s to the pipeline...' % instr
         self.pc += 4
 
     def decode(self, instr):
+        print 'Decoding %s...' % instr
         if instr is Nop:
             pass
         elif instr.instr == 'j':
@@ -87,33 +88,34 @@ class PipelineSim(object):
             pass
 
     def execute(self, instr):
+        print 'Executing %s...' % instr
         # TODO: hazard detection and forwarding
         # TODO: write more logic to update instr.unwritten with registers
         if instr is not Nop and type(instr) is not HLTInstruction:
             i = instr.instr
             c_sigs = instr.c_signals
-            if c_sigs['RegWrite']:
-                dest = instr.rd if c_sigs['RegDst'] else instr.rt
-                instr.unwritten.append(dest)
+            if i != 'j':
+                if c_sigs['RegWrite']:
+                    dest = instr.rd if c_sigs['RegDst'] else instr.rt
+                    instr.unwritten.append(dest)
 
-            if i == 'beq':
-                val1 = self.registers[instr.rs]
-                val2 = self.registers[instr.rt]
-                if val1 == val2:
-                    # not sure if this is the complete math, might involve subtraction
-                    self.pc += (instr.imm * 4)
-                    # stall!
-                    self.pipeline[0] = Nop
-                    self.pipeline[1] = Nop
-            elif i == 'j':
-                # might involve more things?
-                self.pc = instr.target
-            else:
-                val1 = self.registers[instr.rs]
-                val2 = self.registers[instr.rt] if not c_sigs['ALUSrc'] else instr.imm
-                instr.result = eval('%s+%s' % (val1,val2))
+                if i == 'beq':
+                    val1 = self.registers[instr.rs]
+                    val2 = self.registers[instr.rt]
+                    if val1 == val2:
+                        # not sure if this is the complete math, might involve subtraction
+                        self.pc += (instr.imm * 4)
+                        # stall!
+                        self.pipeline[0] = Nop
+                        self.pipeline[1] = Nop
+                else:
+                    val1 = self.registers[instr.rs]
+                    val2 = self.registers[instr.rt] if not c_sigs['ALUSrc'] else instr.imm
+                    instr.result = eval('%s+%s' % (val1,val2))
+                    print '\tinstr: %s -- %s,%s' % (instr,val1,val2)
 
     def access_mem(self, instr):
+        print 'Access memory with %s (if needed)...' % instr
         # sw : M[R[rs]+SignExtImm] = R[rt]
         # lw : R[rt] = M[R[rs]+SignExtImm] 
         if instr is Nop:
@@ -121,15 +123,14 @@ class PipelineSim(object):
         elif instr.instr == 'sw':
             self.memory[instr.result] = self.registers[instr.rt]
         elif instr.instr == 'lw':
-            hex_content = self.memory[instr.result]
-            # kind of hacky...should probably use struct.unpack for this
-            # basically, we need to turn our data from hex string to int
-            mem_content = int(hex_content[::-1],16) if isinstance(hex_content,str) else hex_content
-            instr.result = mem_content
+            offset = instr.result
+            instr.result = self.memory[offset]
+            print '\toffset: %s; result: %s' % (offset,instr.result)
         else:
             pass 
 
     def write(self, instr):
+        print 'Writing back with %s...' % instr
         if instr is Nop or type(instr) is HLTInstruction:
             pass
         elif instr.c_signals['RegWrite']:

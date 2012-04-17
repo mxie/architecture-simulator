@@ -21,7 +21,7 @@ class BinaryParser(object):
         self.f = f
         self.output = ''
         self.instr_list = []
-        self.memory = dict([ (i,0) for i in range(0,self.max_data_addr,4) ])
+        self.memory = dict([ (i,0) for i in range(0,0x2000,4) ])
 
     def parse(self):
         """Reads instructions from a binary file, puts them into data structures, 
@@ -69,7 +69,8 @@ class BinaryParser(object):
             data = words[i:i+4]
             if actual_addr > self.max_data_addr:
                 i_list.append(self.create_instr(actual_addr,data))
-            self.memory[actual_addr] = binascii.hexlify(data)
+            unpacked = struct.unpack('<I',data)[0]
+            self.memory[actual_addr] = unpacked
             offset += 4
         return i_list
 
