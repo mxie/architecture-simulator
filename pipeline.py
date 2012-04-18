@@ -148,9 +148,9 @@ class PipelineSim(object):
             self.stall = False
             self.pc -= 4    # just stall, don't override, so back it up!
         elif self.use_instr:
-            instr = self.use_instr
+            instr = self.pipeline[0] 
+            self.pipeline[0] = self.use_instr
             self.use_instr = None
-            self.pc -= 4
         else:
             self.pc += 4
 
@@ -167,8 +167,15 @@ class PipelineSim(object):
             if instr.instr == 'j':
                 self.pc = instr.target
                 self.stall = True
+            elif instr.instr == 'beq':
+                val1 = self.registers[instr.rs]
+                val2 = self.registers[instr.rt]
+                if val1 == val2:
+                    self.pc += 4 + (4*instr.imm)
+                    self.stall = True
+
             # load-use hazard detection
-            prev_instr = self.pipeline[3]
+            prev_instr = self.pipeline[2]
             if (prev_instr is not Nop and prev_instr.c_signals['MemRead']
                 and (prev_instr.rt == instr.rs or prev_instr.rt == instr.rt)):
                 print '\tLoad-use hazard detected! Inserting bubble.'
@@ -184,14 +191,8 @@ class PipelineSim(object):
             i = instr.instr
             c_sigs = instr.c_signals
 
-            if i == 'beq':
-                val1 = self.registers[instr.rs]
-                val2 = self.registers[instr.rt]
-                if val1 == val2:
-                    self.pc += 4 + (4*instr.imm)
-                    self.stall = True
-            elif i == 'j':
-                pass # temp fix
+            if i == 'j' or i == 'beq':
+                pass
             else:
                 val1 = self.registers[instr.rs]
                 val2 = self.registers[instr.rt] if not c_sigs['ALUSrc'] else instr.imm
