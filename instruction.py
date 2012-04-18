@@ -30,8 +30,7 @@ class Instruction(object):
         self.opcode = opcode
         self.rem = rem
         self.instr = instr_dict[opcode]
-        self.result = None
-        self.unwritten = []
+        self.alu_result = None
 
     def __str__(self):
         """Returns a string representation of this Instruction."""
