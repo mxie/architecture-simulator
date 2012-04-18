@@ -14,6 +14,7 @@ class PipelineSim(object):
         self.pipeline = deque([Nop for i in range(5)])
         self.stall = False
         self.hazards = []
+        self.use_instr = None
 
     def __str__(self):
         result = 'REGISTER CONTENT\n'
@@ -79,45 +80,63 @@ class PipelineSim(object):
         """ Handles X-X forwarding and M-X forwarding """
         mstage_instr = self.pipeline[3]
         wstage_instr = self.pipeline[4]
-        if mstage_instr is RInstruction or wstage_instr is RInstruction:
+        if type(mstage_instr) is RInstruction or type(wstage_instr) is RInstruction:
             if (mstage_instr.c_signals['RegWrite'] and mstage_instr.rd != 0 
                 and reg == mstage_instr.rd and mstage_instr.alu_result is not None):
+                print '\tX-X forwarding: RD - %s, value - %s' % (reg, mstage_instr.alu_result)
                 return mstage_instr.alu_result 
             # using elif below avoids double data hazards
             elif (wstage_instr.c_signals['RegWrite'] and wstage_instr.rd != 0 
                 and reg == wstage_instr.rd and wstage_instr.alu_result is not None):
+                print '\tM-X forwarding: RD - %s, value - %s' % (reg, mstage_instr.alu_result)
                 return wstage_instr.alu_result 
-        elif mstage_instr is IInstruction or wstage_instr is IInstruction:
+        elif type(mstage_instr) is IInstruction or type(wstage_instr) is IInstruction:
             if (mstage_instr.c_signals['RegWrite'] and mstage_instr.rt != 0 
                 and reg == mstage_instr.rt and mstage_instr.alu_result is not None):
+                print '\tX-X forwarding: RT - %s, value - %s' % (reg, mstage_instr.alu_result)
                 return mstage_instr.alu_result 
             # using elif below avoids double data hazards
             elif (wstage_instr.c_signals['RegWrite'] and wstage_instr.rt != 0 
                 and reg == wstage_instr.rt and wstage_instr.alu_result is not None):
+                print '\tM-X forwarding: RT - %s, value - %s' % (reg, mstage_instr.alu_result)
                 return wstage_instr.alu_result 
         else:
             return None
 
     def fetch(self, instr):
-        print 'HAZARDS: %s' %  self.hazards
+        s = 'On deck: '
+        if self.use_instr:
+            s += 'was: %s, now: %s (load use)' % (self.pipeline[0],self.use_instr)
+        else:
+            s += '%s' % self.pipeline[0]
+        print s
+        print '\thazards: %s' %  self.hazards
+
+        # move the pipeline along!
         if (len(self.pipeline) >= 5):
             self.pipeline.pop()
-
         # another stage may be asking for a stall, so do Nop instead
-        instr = Nop if self.stall else instr
-        print 'Adding %s to the pipeline...' % instr
+
+        if self.stall:
+            instr = Nop
+            self.stall = False
+            self.pc -= 4    # just stall, don't override, so back it up!
+        elif self.use_instr:
+            instr = self.use_instr
+            self.use_instr = None
+            self.pc -= 4
+        else:
+            self.pc += 4
+
+        print 'Fetching: %s' % instr
         self.pipeline.appendleft(instr)
 
         if instr is not Nop:
             self.instr_count += 1
-        if self.stall:          # reset
-            self.stall = False
-        else:
-            self.pc += 4
 
     def decode(self, instr):
-        print 'Decoding %s...' % instr
-        print 'HAZARDS: %s' %  self.hazards
+        print 'Decoding: %s' % instr
+        print '\thazards: %s' %  self.hazards
         if instr is not Nop:
             if instr.instr == 'j':
                 self.pc = instr.target
@@ -126,19 +145,18 @@ class PipelineSim(object):
             prev_instr = self.pipeline[3]
             if (prev_instr is not Nop and prev_instr.c_signals['MemRead']
                 and (prev_instr.rt == instr.rs or prev_instr.rt == instr.rt)):
-                self.stall = True
+                print '\tLoad-use hazard detected! Inserting bubble.'
+                self.pipeline[1] = Nop
+                self.use_instr = instr
         else:
             pass
 
     def execute(self, instr):
-        print 'Executing %s...' % instr
-        print 'HAZARDS: %s' %  self.hazards
+        print 'Executing: %s' % instr
+        print '\thazards: %s' %  self.hazards
         if instr is not Nop and type(instr) is not HLTInstruction:
             i = instr.instr
             c_sigs = instr.c_signals
-            if c_sigs['RegWrite']:
-                dest = instr.rd if c_sigs['RegDst'] else instr.rt
-                self.hazards.append(dest)
 
             if i == 'beq':
                 val1 = self.registers[instr.rs]
@@ -149,32 +167,38 @@ class PipelineSim(object):
             elif i == 'j':
                 pass # temp fix
             else:
-                rs = instr.rs
-                print 'RS: %s' % instr.rs
+                val1 = self.registers[instr.rs]
+                val2 = self.registers[instr.rt] if not c_sigs['ALUSrc'] else instr.imm
+
                 if instr.rs in self.hazards:
-                    forwarded_rs = self.get_forwarded_val(instr.rs)
+                    print 'Hazardous RS found!'
+                    forwarded_rs_val = self.get_forwarded_val(instr.rs)
                     if forwarded_rs:
-                        rs = forwarded_rs
+                        print '\tForwarded RS val: %s' % forwarded_rs_val
+                        val1 = forwarded_rs_val
                     else:
                         self.stall = True
 
-                rt = instr.rt
-                print 'RT: %s' % instr.rt
                 if instr.rt in self.hazards:
-                    forwarded_rt = self.get_forwarded_val(instr.rt)
-                    if forwarded_rt:
-                        rt = forwarded_rt
+                    print 'Hazardous RT found!'
+                    forwarded_rt_val = self.get_forwarded_val(instr.rt)
+                    if forwarded_rt_val:
+                        print '\tForwarded RT val: %s' % forwarded_rt_val
+                        val2 = forwarded_rt_val
                     else:
                         self.stall = True
 
-                val1 = self.registers[rs]
-                val2 = self.registers[rt] if not c_sigs['ALUSrc'] else instr.imm
+                print '\tRS: %s RT: %s' % (instr.rs,instr.rt)
                 instr.alu_result = eval('%s+%s' % (val1,val2))
                 print '\tinstr: %s -- %s,%s' % (instr,val1,val2)
 
+            if c_sigs['RegWrite']:
+                dest = instr.rd if c_sigs['RegDst'] else instr.rt
+                self.hazards.append(dest)
+
     def access_mem(self, instr):
-        print 'Access memory with %s (if needed)...' % instr
-        print 'HAZARDS: %s' %  self.hazards
+        print 'Access memory with: %s' % instr
+        print '\thazards: %s' %  self.hazards
         # sw : M[R[rs]+SignExtImm] = R[rt]
         # lw : R[rt] = M[R[rs]+SignExtImm]
         if instr is Nop:
@@ -189,8 +213,8 @@ class PipelineSim(object):
             pass
 
     def write(self, instr):
-        print 'Writing back with %s...' % instr
-        print 'HAZARDS: %s' %  self.hazards
+        print 'Writing back with: %s' % instr
+        print '\thazards: %s' %  self.hazards
         if instr is Nop or type(instr) is HLTInstruction:
             pass
         elif instr.c_signals['RegWrite']:
