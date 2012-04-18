@@ -81,27 +81,53 @@ class PipelineSim(object):
         mstage_instr = self.pipeline[3]
         wstage_instr = self.pipeline[4]
         if type(mstage_instr) is RInstruction or type(wstage_instr) is RInstruction:
-            if (mstage_instr.c_signals['RegWrite'] and mstage_instr.rd != 0 
-                and reg == mstage_instr.rd and mstage_instr.alu_result is not None):
-                print '\tX-X forwarding: RD - %s, value - %s' % (reg, mstage_instr.alu_result)
-                return mstage_instr.alu_result 
-            # using elif below avoids double data hazards
-            elif (wstage_instr.c_signals['RegWrite'] and wstage_instr.rd != 0 
-                and reg == wstage_instr.rd and wstage_instr.alu_result is not None):
-                print '\tM-X forwarding: RD - %s, value - %s' % (reg, mstage_instr.alu_result)
-                return wstage_instr.alu_result 
+            self.get_forwarded_val_helper(reg, mstage_instr, wstage_instr, RInstruction)
+#            if (mstage_instr.c_signals['RegWrite'] and mstage_instr.rd != 0 
+#                and reg == mstage_instr.rd and mstage_instr.alu_result is not None):
+#                print '\tX-X forwarding: RD - %s, value - %s' % (reg, mstage_instr.alu_result)
+#                return mstage_instr.alu_result 
+#            # using elif below avoids double data hazards
+#            elif (wstage_instr.c_signals['RegWrite'] and wstage_instr.rd != 0 
+#                and reg == wstage_instr.rd and wstage_instr.alu_result is not None):
+#                print '\tM-X forwarding: RD - %s, value - %s' % (reg, mstage_instr.alu_result)
+#                return wstage_instr.alu_result 
         elif type(mstage_instr) is IInstruction or type(wstage_instr) is IInstruction:
-            if (mstage_instr.c_signals['RegWrite'] and mstage_instr.rt != 0 
-                and reg == mstage_instr.rt and mstage_instr.alu_result is not None):
-                print '\tX-X forwarding: RT - %s, value - %s' % (reg, mstage_instr.alu_result)
-                return mstage_instr.alu_result 
-            # using elif below avoids double data hazards
-            elif (wstage_instr.c_signals['RegWrite'] and wstage_instr.rt != 0 
-                and reg == wstage_instr.rt and wstage_instr.alu_result is not None):
-                print '\tM-X forwarding: RT - %s, value - %s' % (reg, mstage_instr.alu_result)
-                return wstage_instr.alu_result 
+            self.get_forwarded_val_helper(reg, mstage_instr, wstage_instr, IInstruction)
+#            if (mstage_instr.c_signals['RegWrite'] and mstage_instr.rt != 0 
+#                and reg == mstage_instr.rt and mstage_instr.alu_result is not None):
+#                print '\tX-X forwarding: RT - %s, value - %s' % (reg, mstage_instr.alu_result)
+#                return mstage_instr.alu_result 
+#            # using elif below avoids double data hazards
+#            elif (wstage_instr.c_signals['RegWrite'] and wstage_instr.rt != 0 
+#                and reg == wstage_instr.rt and wstage_instr.alu_result is not None):
+#                print '\tM-X forwarding: RT - %s, value - %s' % (reg, mstage_instr.alu_result)
+#                return wstage_instr.alu_result 
         else:
             return None
+
+
+    def get_forwarded_val_helper(self, reg, mstage_instr, wstage_instr, instrtype):
+        mstage_dest = None
+        wstage_dest = None
+        if type(mstage_instr) is RInstruction:
+            mstage_dest = mstage_instr.rd
+        elif type(mstage_instr) is IInstruction:
+            mstage_dest = mstage_instr.rt
+        if type(wstage_instr) is RInstruction:
+            wstage_dest = wstage_instr.rd
+        elif type(wstage_instr) is IInstruction:
+            wstage_dest = wstage_instr.rt
+
+        if (mstage_instr.c_signals['RegWrite'] and mstage_dest != 0 
+            and reg == mstage_dest and mstage_instr.alu_result is not None):
+            print '\tX-X forwarding: dest reg - %s, value - %s' % (reg, mstage_instr.alu_result)
+            return mstage_instr.alu_result 
+        # using elif below avoids double data hazards
+        elif (wstage_instr.c_signals['RegWrite'] and wstage_dest != 0
+            and reg == wstage_dest and wstage_instr.alu_result is not None):
+            print '\tM-X forwarding: dest reg - %s, value - %s' % (reg, mstage_instr.alu_result)
+            return wstage_instr.alu_result         
+
 
     def fetch(self, instr):
         s = 'On deck: '
