@@ -4,7 +4,6 @@
 # EECE 3230 Final Project
 
 import sys
-from instr_models import RInstruction, IInstruction, JInstruction, HLTInstruction
 from parser import BinaryParser
 from pipeline import PipelineSim
 
@@ -20,7 +19,7 @@ if __name__ == "__main__":
         p_sim = PipelineSim(p.memory,p.instr_list)
         p_sim.advance() 
         print "*** Final content: ***\n"
-        print p_sim
         print "Instruction count: %s" % p_sim.instr_count
         print "Cycle count: %s" % p_sim.cycle_count
         print "CPI: %s" % (float(p_sim.cycle_count) / p_sim.instr_count)
+        print p_sim

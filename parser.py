@@ -1,6 +1,6 @@
 #!/usr/bin/python
 import binascii, struct
-from instr_models import RInstruction, IInstruction, JInstruction, HLTInstruction
+from instruction import RInstruction, IInstruction, JInstruction, HLTInstruction
 
 # maps available opcodes to their instruction and instruction types
 instr_dict = {'000000':('add',RInstruction),
@@ -14,14 +14,15 @@ instr_dict = {'000000':('add',RInstruction),
 class BinaryParser(object):
     """Used to parse binary files into MIPS instructions."""
     num_bytes = 16
-    max_data_addr = 0x00000ffc
+    max_data_addr = 0xffc
+    max_mem_addr = 0x2000
 
     def __init__(self,f):
         """Initialize this BinaryParser."""
         self.f = f
         self.output = ''
         self.instr_list = []
-        self.memory = dict([ (i,0) for i in range(0,0x2000,4) ])
+        self.memory = dict([ (i,0) for i in range(0,self.max_mem_addr,4) ])
 
     def parse(self):
         """Reads instructions from a binary file, puts them into data structures, 
@@ -62,15 +63,15 @@ class BinaryParser(object):
     def split_instrs(self,addr,words):
         """Splits the given words into 4 instructions and loads data directly into memory."""
         i_list = []
-        # separating the 16 bytes into 4 instructions
         offset = 0
         for i in range(0,len(words),4):
             actual_addr = addr+offset
             data = words[i:i+4]
+            # only create instructions that start at 0x1000
             if actual_addr > self.max_data_addr:
                 i_list.append(self.create_instr(actual_addr,data))
-            unpacked = struct.unpack('<I',data)[0]
-            self.memory[actual_addr] = unpacked
+            # store all data into memory (both data and instruction segments)
+            self.memory[actual_addr] = self.hex_to_int(data)
             offset += 4
         return i_list
 
@@ -95,13 +96,14 @@ class BinaryParser(object):
         else:
             print 'Opcode %s is not a valid instruction' % opcode
 
+    def hex_to_int(self,data):
+        """ Reads in data string in little endian, unsigned format and returns an int. """
+        return struct.unpack('<I',data)[0]
+
     def hex_to_bin(self,s):
         """Converts a hex data into a 32-bit binary string"""
-        # read in the string/data in little endian, unsigned format
-        unpacked = struct.unpack('<I',s)[0]
-        # get binary representation
-        binary_str = bin(unpacked)[2:]
-
+        int_rep = self.hex_to_int(s)
+        binary_str = bin(int_rep)[2:]
         return self.make_32bit(binary_str)
     
     def make_32bit(self, bin):
