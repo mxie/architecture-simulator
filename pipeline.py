@@ -21,6 +21,7 @@ class PipelineSim(object):
         self.stall = False
         self.hazards = []
         self.use_instr = None
+        self.branched = False
 
     def __str__(self):
         """Returns a string representation of this pipeline."""
@@ -62,7 +63,6 @@ class PipelineSim(object):
                 self.do_stages(instr)
             except IndexError:
                 self.do_stages(Nop)
-
             # stop fetching after we have hit HLT
             if type(self.pipeline[0]) is HLTInstruction:
                 self.pipeline[0] = Nop
@@ -82,42 +82,10 @@ class PipelineSim(object):
         print '\n'
         self.cycle_count += 1
 
-
-#    def forwarded_val_helper(self, reg, mstage_instr, wstage_instr):
-#        mtype = type(mstage_instr)
-#        wtype = type(wstage_instr)
-#        mstage_dest, wstage_dest = None
-#        if mtype is RInstruction:
-#            mstage_dest = mstage_instr.rd
-#        elif mtype is IInstruction:
-#            mstage_dest = mstage_instr.rt
-#        if wtype is RInstruction:
-#            wstage_dest = wstage_instr.rd
-#        elif mtype is IInstruction:
-#            wstage_dest = wstage_instr.rt
-#
-#        if (mstage_instr.c_signals['RegWrite'] and mstage_dest != 0 
-#            and reg == mstage_dest and mstage_instr.alu_result is not None):
-#            print '\tX-X forwarding: dest reg - %s, value - %s' % (reg, mstage_instr.alu_result)
-#            return mstage_instr.alu_result 
-#        # using elif below avoids double data hazards
-#        elif (wstage_instr.c_signals['RegWrite'] and wstage_dest != 0 
-#            and reg == wstage_dest and wstage_instr.alu_result is not None):
-#            print '\tM-X forwarding: dest reg - %s, value - %s' % (reg, wstage_instr.alu_result)
-#            return wstage_instr.alu_result         
-
-
     def get_forwarded_val(self, reg):
         """ Handles X-X forwarding and M-X forwarding """
         mstage_instr = self.pipeline[3]
         wstage_instr = self.pipeline[4]
-#        if ((type(mstage_instr) is RInstruction or type(mstage_instr) is IInstruction)
-#            and (type(wstage_instr) is RInstruction or type(wstage_instr) is IInstruction)):
-#
-#            return self.forwarded_val_helper(reg, mstage_instr, wstage_instr)
-#        else:
-#            return None
-
         if type(mstage_instr) is RInstruction or type(wstage_instr) is RInstruction:
             if (mstage_instr.c_signals['RegWrite'] and mstage_instr.rd != 0 
                 and reg == mstage_instr.rd and mstage_instr.alu_result is not None):
@@ -141,7 +109,6 @@ class PipelineSim(object):
         else:
             return None
 
-
     def fetch(self, instr):
         """Fetches the given instruction."""
         s = 'On deck: '
@@ -160,6 +127,9 @@ class PipelineSim(object):
 
         # another stage may be asking for a stall, so do Nop instead
         if self.stall:
+            if self.branched:
+                self.pc -= 4
+                self.branched = False
             instr = self.find_instr(self.pc)
             self.pipeline[0] = Nop
             self.stall = False
@@ -189,8 +159,9 @@ class PipelineSim(object):
                 val1 = self.registers[instr.rs]
                 val2 = self.registers[instr.rt]
                 if val1 == val2:
-                    self.pc += 4 + (4*instr.imm)
+                    self.pc += 4*instr.imm
                     self.stall = True
+                    self.branched = True
                     print '\tbranch condition = true, jump to addr %s' % self.pc
                 else:
                     print '\tbranch condition = false, move on!'
@@ -203,12 +174,10 @@ class PipelineSim(object):
                 self.pipeline[1] = Nop
                 self.use_instr = instr
 
-
     def execute(self, instr):
-        """Executes the given instruction and stores the intermediate result."""
         print 'Executing: %s' % instr
         print '\thazards: %s' %  self.hazards
-        if instr is not Nop:
+        if instr is not Nop and type(instr) is not HLTInstruction:
             i = instr.instr
             c_sigs = instr.c_signals
 
@@ -219,20 +188,18 @@ class PipelineSim(object):
                 if instr.rs in self.hazards:
                     print '\tHazardous RS found!'
                     forwarded_rs_val = self.get_forwarded_val(instr.rs)
-                    if forwarded_rs_val:
+                    if forwarded_rs_val is not None:
                         print '\tForwarded RS val: %s' % forwarded_rs_val
                         val1 = forwarded_rs_val
 
                 if instr.rt in self.hazards:
                     print '\tHazardous RT found!'
                     forwarded_rt_val = self.get_forwarded_val(instr.rt)
-                    if forwarded_rt_val:
+                    if forwarded_rt_val is not None:
                         print '\tForwarded RT val: %s' % forwarded_rt_val
-                        val2 = forwarded_rt_val
+                        val2 = forwarded_rt_val if not c_sigs['ALUSrc'] else val2
 
-                print '\tRS: %s RT: %s' % (instr.rs,instr.rt)
                 instr.alu_result = eval('%s+%s' % (val1,val2))
-                print '\tinstr: %s -- %s,%s' % (instr,val1,val2)
 
             if c_sigs['RegWrite']:
                 dest = instr.rd if c_sigs['RegDst'] else instr.rt
@@ -249,7 +216,6 @@ class PipelineSim(object):
         elif instr is not Nop and instr.instr == 'lw':
             offset = instr.alu_result
             instr.alu_result = self.memory[offset]
-            print '\toffset: %s; result: %s' % (offset,instr.alu_result)
 
     def write(self, instr):
         """Writes data back to register file."""
