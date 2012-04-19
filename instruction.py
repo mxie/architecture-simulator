@@ -18,6 +18,7 @@ def bin_to_int(s):
     return int(s, 2)
 
 class Nop(object):
+    """Represents a NOP"""
     pass
 
 
@@ -84,6 +85,7 @@ class IInstruction(Instruction):
 
 
     def set_control_signals(self,instr):
+        """Sets control signals according to the instruction."""
         signals = { 'RegDst': 0,
                     'ALUSrc': 0,
                     'MemtoReg': 0,
