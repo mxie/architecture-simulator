@@ -1,4 +1,9 @@
 #!/usr/bin/python
+
+# Melissa Xie, Courtney Sims
+# EECE 3230 Final Project
+# Prof. Fei, April 2012
+
 from collections import deque
 from instruction import HLTInstruction, RInstruction, IInstruction, JInstruction, Nop
 import struct, binascii
@@ -60,6 +65,7 @@ class PipelineSim(object):
                 self.do_stages(Nop)
             # stop fetching after we have hit HLT
             if type(self.pipeline[0]) is HLTInstruction:
+                self.pipeline[0] = Nop
                 break
 
         # flushes the pipeline after we see an HLT
@@ -101,30 +107,7 @@ class PipelineSim(object):
                 print '\tM-X forwarding: RT - %s, value - %s' % (reg, wstage_instr.alu_result)
                 return wstage_instr.alu_result 
         else:
-            return None
-
-
-    def get_forwarded_val_helper(self, reg, mstage_instr, wstage_instr, instrtype):
-        mstage_dest = None
-        wstage_dest = None
-        if type(mstage_instr) is RInstruction:
-            mstage_dest = mstage_instr.rd
-        elif type(mstage_instr) is IInstruction:
-            mstage_dest = mstage_instr.rt
-        if type(wstage_instr) is RInstruction:
-            wstage_dest = wstage_instr.rd
-        elif type(wstage_instr) is IInstruction:
-            wstage_dest = wstage_instr.rt
-
-        if (mstage_instr.c_signals['RegWrite'] and mstage_dest != 0 
-            and reg == mstage_dest and mstage_instr.alu_result is not None):
-            print '\tX-X forwarding: dest reg - %s, value - %s' % (reg, mstage_instr.alu_result)
-            return mstage_instr.alu_result 
-        # using elif below avoids double data hazards
-        elif (wstage_instr.c_signals['RegWrite'] and wstage_dest != 0
-            and reg == wstage_dest and wstage_instr.alu_result is not None):
-            print '\tM-X forwarding: dest reg - %s, value - %s' % (reg, mstage_instr.alu_result)
-            return wstage_instr.alu_result         
+            return None  
 
 
     def fetch(self, instr):

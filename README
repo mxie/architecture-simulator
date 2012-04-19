@@ -1,10 +1,13 @@
 Melissa Xie, Courtney Sims
 EECE 3230 Final Project
+Prof. Fei, April 2012
 
-Usage: ./archsim.py [binary file] [hexdump file]
-Do `cat [hexdump file]` to see hexdump output
+Usage: ./run_sim.py [binary file]
 
-This program is a MIPS simulator that currently just takes in a binary file containing MIPS instructions and writes the hexdump representation of the input file out to the given hexdump file name.
+Or, to write output to a file instead of standard output:
+./run_sim.py [binary file] >[output file]
+
+This program is a MIPS simulator that reads in a binary file, simulates the instructions, and outputs register and memory content, instruction and cycle count, and CPI.
 
 == Changelog ==
 04.05.2012 - The program now prints the register and memory content to standard output in addition to the hexdump file.

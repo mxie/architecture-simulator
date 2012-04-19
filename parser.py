@@ -1,4 +1,9 @@
 #!/usr/bin/python
+
+# Melissa Xie, Courtney Sims
+# EECE 3230 Final Project
+# Prof. Fei, April 2012
+
 import binascii, struct
 from instruction import RInstruction, IInstruction, JInstruction, HLTInstruction
 

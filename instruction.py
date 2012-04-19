@@ -2,6 +2,7 @@
 
 # Melissa Xie, Courtney Sims
 # EECE 3230 Final Project
+# Prof. Fei, April 2012
 
 # maps available opcodes to their instruction
 instr_dict = {'000000':'add',
@@ -98,7 +99,7 @@ class IInstruction(Instruction):
             for s in ['ALUSrc','MemtoReg','RegWrite','MemRead']:
                 signals[s] = 1
         elif instr == 'sw':
-            for s in ['MemtoReg','MemWrite']:
+            for s in ['ALUSrc','MemWrite']:
                 signals[s] = 1
         elif instr == 'addi':
             for s in ['ALUSrc','RegWrite']:

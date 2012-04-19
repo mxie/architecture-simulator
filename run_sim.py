@@ -2,6 +2,7 @@
 
 # Melissa Xie, Courtney Sims
 # EECE 3230 Final Project
+# Prof. Fei, April 2012
 
 import sys
 from parser import BinaryParser
