@@ -81,27 +81,25 @@ class PipelineSim(object):
         mstage_instr = self.pipeline[3]
         wstage_instr = self.pipeline[4]
         if type(mstage_instr) is RInstruction or type(wstage_instr) is RInstruction:
-            self.get_forwarded_val_helper(reg, mstage_instr, wstage_instr, RInstruction)
-#            if (mstage_instr.c_signals['RegWrite'] and mstage_instr.rd != 0 
-#                and reg == mstage_instr.rd and mstage_instr.alu_result is not None):
-#                print '\tX-X forwarding: RD - %s, value - %s' % (reg, mstage_instr.alu_result)
-#                return mstage_instr.alu_result 
-#            # using elif below avoids double data hazards
-#            elif (wstage_instr.c_signals['RegWrite'] and wstage_instr.rd != 0 
-#                and reg == wstage_instr.rd and wstage_instr.alu_result is not None):
-#                print '\tM-X forwarding: RD - %s, value - %s' % (reg, mstage_instr.alu_result)
-#                return wstage_instr.alu_result 
+            if (mstage_instr.c_signals['RegWrite'] and mstage_instr.rd != 0 
+                and reg == mstage_instr.rd and mstage_instr.alu_result is not None):
+                print '\tX-X forwarding: RD - %s, value - %s' % (reg, mstage_instr.alu_result)
+                return mstage_instr.alu_result 
+            # using elif below avoids double data hazards
+            elif (wstage_instr.c_signals['RegWrite'] and wstage_instr.rd != 0 
+                and reg == wstage_instr.rd and wstage_instr.alu_result is not None):
+                print '\tM-X forwarding: RD - %s, value - %s' % (reg, wstage_instr.alu_result)
+                return wstage_instr.alu_result 
         elif type(mstage_instr) is IInstruction or type(wstage_instr) is IInstruction:
-            self.get_forwarded_val_helper(reg, mstage_instr, wstage_instr, IInstruction)
-#            if (mstage_instr.c_signals['RegWrite'] and mstage_instr.rt != 0 
-#                and reg == mstage_instr.rt and mstage_instr.alu_result is not None):
-#                print '\tX-X forwarding: RT - %s, value - %s' % (reg, mstage_instr.alu_result)
-#                return mstage_instr.alu_result 
-#            # using elif below avoids double data hazards
-#            elif (wstage_instr.c_signals['RegWrite'] and wstage_instr.rt != 0 
-#                and reg == wstage_instr.rt and wstage_instr.alu_result is not None):
-#                print '\tM-X forwarding: RT - %s, value - %s' % (reg, mstage_instr.alu_result)
-#                return wstage_instr.alu_result 
+            if (mstage_instr.c_signals['RegWrite'] and mstage_instr.rt != 0 
+                and reg == mstage_instr.rt and mstage_instr.alu_result is not None):
+                print '\tX-X forwarding: RT - %s, value - %s' % (reg, mstage_instr.alu_result)
+                return mstage_instr.alu_result 
+            # using elif below avoids double data hazards
+            elif (wstage_instr.c_signals['RegWrite'] and wstage_instr.rt != 0 
+                and reg == wstage_instr.rt and wstage_instr.alu_result is not None):
+                print '\tM-X forwarding: RT - %s, value - %s' % (reg, wstage_instr.alu_result)
+                return wstage_instr.alu_result 
         else:
             return None
 
@@ -133,6 +131,8 @@ class PipelineSim(object):
         s = 'On deck: '
         if self.use_instr:
             s += 'was: %s, now: %s (load use)' % (self.pipeline[0],self.use_instr)
+        elif self.stall:
+            s += 'was: %s, now: %s (jump stall)' % (self.pipeline[0],Nop)
         else:
             s += '%s' % self.pipeline[0]
         print s
@@ -141,12 +141,13 @@ class PipelineSim(object):
         # move the pipeline along!
         if (len(self.pipeline) >= 5):
             self.pipeline.pop()
-        # another stage may be asking for a stall, so do Nop instead
 
+        # another stage may be asking for a stall, so do Nop instead
         if self.stall:
-            instr = Nop
+            instr = self.find_instr(self.pc)
+            self.pipeline[0] = Nop
             self.stall = False
-            self.pc -= 4    # just stall, don't override, so back it up!
+            self.pc += 4
         elif self.use_instr:
             instr = self.pipeline[0] 
             self.pipeline[0] = self.use_instr
@@ -173,6 +174,9 @@ class PipelineSim(object):
                 if val1 == val2:
                     self.pc += 4 + (4*instr.imm)
                     self.stall = True
+                    print '\tbranch condition = true, jump to addr %s' % self.pc
+                else:
+                    print '\tbranch condition = false, move on!'
 
             # load-use hazard detection
             prev_instr = self.pipeline[2]
@@ -198,22 +202,18 @@ class PipelineSim(object):
                 val2 = self.registers[instr.rt] if not c_sigs['ALUSrc'] else instr.imm
 
                 if instr.rs in self.hazards:
-                    print 'Hazardous RS found!'
+                    print '\tHazardous RS found!'
                     forwarded_rs_val = self.get_forwarded_val(instr.rs)
-                    if forwarded_rs:
+                    if forwarded_rs_val:
                         print '\tForwarded RS val: %s' % forwarded_rs_val
                         val1 = forwarded_rs_val
-                    else:
-                        self.stall = True
 
                 if instr.rt in self.hazards:
-                    print 'Hazardous RT found!'
+                    print '\tHazardous RT found!'
                     forwarded_rt_val = self.get_forwarded_val(instr.rt)
                     if forwarded_rt_val:
                         print '\tForwarded RT val: %s' % forwarded_rt_val
                         val2 = forwarded_rt_val
-                    else:
-                        self.stall = True
 
                 print '\tRS: %s RT: %s' % (instr.rs,instr.rt)
                 instr.alu_result = eval('%s+%s' % (val1,val2))
